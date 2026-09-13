@@ -10,9 +10,9 @@ remove_unwanted_packages() {
         "luci-app-msd_lite" "luci-app-unblockneteasemusic" "luci-app-adguardhome"
     )
     local packages_net=(
-        "haproxy" "xray-core" "xray-plugin" "dns2socks" "alist"
+        "haproxy" "xray-core" "xray-plugin" "dns2socks" "alist" "hysteria"
         "mosdns" "adguardhome" "ddns-go" "naiveproxy" "shadowsocks-rust"
-        "v2ray-core" "v2ray-geodata" "v2ray-plugin" "tuic-client"
+        "sing-box" "v2ray-core" "v2ray-geodata" "v2ray-plugin" "tuic-client"
         "chinadns-ng" "ipt2socks" "tcping" "trojan-plus" "simple-obfs" "shadowsocksr-libev"
         "dae" "daed" "mihomo" "geoview" "open-app-filter" "msd_lite"
     )
@@ -123,7 +123,7 @@ update_lucky() {
     fi
 
     echo "正在更新 lucky Makefile..."
-    local patch_line="\\t[ -f \$(TOPDIR)/../wrt_core/patches/lucky_${version}_Linux_\$(LUCKY_ARCH)_wanji.tar.gz ] && install -Dm644 \$(TOPDIR)/../wrt_core/patches/lucky_${version}_Linux_\$(LUCKY_ARCH)_wanji.tar.gz \$(PKG_BUILD_DIR)/\$(PKG_NAME)_\$(PKG_VERSION)_Linux_\$(LUCKY_ARCH).tar.gz"
+    local patch_line="\\t[ -f \$(TOPDIR)/../wrt_core/patches/lucky_${version}_Linux_\$(LUCKY_ARCH)_wanji.tar.gz ] && install -Dm644 \$(TOPDIR)/../wrt_core/patches/lucky_${version}_Linux_\$(LUCKY_ARCH)_wanji.tar.gz \$(1)/etc/lucky_\$(LUCKY_ARCH)_wanji.tar.gz"
 
     if grep -q "Build/Prepare" "$makefile_path"; then
         sed -i "/Build\\/Prepare/a\\$patch_line" "$makefile_path"
