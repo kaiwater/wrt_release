@@ -10,7 +10,7 @@ remove_unwanted_packages() {
         "luci-app-msd_lite" "luci-app-unblockneteasemusic" "luci-app-adguardhome"
     )
     local packages_net=(
-        "haproxy" "xray-core" "xray-plugin" "dns2socks" "alist" "hysteria"
+        "haproxy" "xray-core" "xray-plugin" "dns2socks" "alist"
         "mosdns" "adguardhome" "ddns-go" "naiveproxy" "shadowsocks-rust"
         "v2ray-core" "v2ray-geodata" "v2ray-plugin" "tuic-client"
         "chinadns-ng" "ipt2socks" "tcping" "trojan-plus" "simple-obfs" "shadowsocksr-libev"
