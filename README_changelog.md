@@ -261,7 +261,7 @@ ERROR: luci-app-oaf-7.0-r1: trying to overwrite usr/share/rpcd/acl.d/luci-app-oa
 
 原因：small-package 的 `appfilter` 和 `luci-app-oaf` 都会安装同一个 ACL 文件。opkg 时代通常由 `--force-overwrite` 掩盖，apk 不允许包之间覆盖文件，因此直接报错。
 
-修复：`wrt_core/modules/custom_feed.sh` 在同步 custom_feed 后，把 `appfilter/Makefile` 里重复安装的 ACL 目标文件名改为 `appfilter-oaf.json`。这样两份 ACL 定义都会保留：
+修复：`wrt_core/modules/custom_feed.sh` 在同步 custom_feed 后，把 `open-app-filter/Makefile`（包名 `appfilter`）里重复安装的 ACL 目标文件名改为 `appfilter-oaf.json`。这样两份 ACL 定义都会保留：
 
 - `luci-app-oaf.json`：`uci appfilter` 权限
 - `appfilter-oaf.json`：`uci fwx` + `ubus fwx common` 权限

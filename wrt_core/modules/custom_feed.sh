@@ -255,7 +255,7 @@ install_custom_feed() {
         return 1
     fi
 
-    if ! fix_appfilter_acl_conflict "$custom_feed_dir/appfilter"; then
+    if ! fix_appfilter_acl_conflict "$custom_feed_dir/open-app-filter"; then
         rm -rf "$custom_feed_dir"
         return 1
     fi
