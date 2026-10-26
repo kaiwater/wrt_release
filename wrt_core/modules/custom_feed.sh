@@ -144,10 +144,11 @@ fix_appfilter_acl_conflict() {
     fi
 
     # appfilter 与 luci-app-oaf 都会安装 usr/share/rpcd/acl.d/luci-app-oaf.json。
-    # apk 不允许包之间覆盖文件，保留 luci-app-oaf 的安装项，删除后端包里的重复项。
-    if grep -q 'luci-app-oaf\.json' "$makefile_path"; then
-        sed -i '/luci-app-oaf\.json/d' "$makefile_path"
-        echo "已移除 appfilter 中与 luci-app-oaf 重复的 ACL 文件安装。"
+    # apk 不允许包之间覆盖文件；把 appfilter 的副本改名为 appfilter-oaf.json，
+    # 这样两份 ACL 定义（uci appfilter / uci+ubus fwx）都能保留。
+    if grep -q 'INSTALL_DATA.*luci-app-oaf\.json' "$makefile_path"; then
+        sed -i '/INSTALL_DATA.*luci-app-oaf\.json/ s#acl\.d/$#acl.d/appfilter-oaf.json#' "$makefile_path"
+        echo "已将 appfilter 的重复 ACL 文件改名为 appfilter-oaf.json，避免与 luci-app-oaf 冲突。"
     fi
 }
 
