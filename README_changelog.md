@@ -86,7 +86,7 @@
 - `jdcloud_ipq60xx_libwrt.config`
   - 只保留 `RE-CS-02` 一个 profile。
   - 移除 SS-01、CS-07、AX5-JDC。
-  - 保留 CS-02 专属：`zram-swap`、`ath11k-firmware-qcn9074-ddwrt`、`luci-app-athena-led`、`luci-app-cupsd`、`luci-app-dockerman`、`luci-app-emmc-health`、`luci-app-quickfile`、`luci-app-samba4`、`luci-app-sqm`。
+  - 保留 CS-02 专属：`ath11k-firmware-qcn9074-ddwrt`、`luci-app-athena-led`、`luci-app-cupsd`、`luci-app-dockerman`、`luci-app-emmc-health`、`luci-app-quickfile`、`luci-app-sqm`、`luci-app-tailscale`。
 - `aliyun_ap8220_libwrt.config`
   - 只保留 target/device 定义。
   - 设备包补回上游默认的 `kmod-hci-uart`，避免覆盖默认包列表时丢掉蓝牙 UART。
@@ -210,6 +210,8 @@ ADD_CONFIG_FRAGMENTS=nss_fw_11_4 ./build.sh jdcloud_ipq60xx_libwrt
 - `wrt_core/deconfig/xiaomi_ax3600_libwrt.config`
 - `wrt_core/deconfig/fragments/nss_mem_512m.config`
 - `wrt_core/deconfig/fragments/nss_fw_11_4.config`
+- `wrt_core/deconfig/fragments/samba_ksmbd.config`
+- `wrt_core/deconfig/fragments/samba4.config`
 - `wrt_core/patches/ath11k_fw.mk`
 - `README_changelog.md`
 
@@ -322,7 +324,23 @@ apk 要求包版本以数字开头，`v0.3.4-r1` 会被判定为非法版本；o
 已合并到 base：
 
 - 命令行工具：`at`、`bash`、`bc`、`bind-dig`、`btop`、`coreutils`、`coreutils-base64`、`coreutils-cksum`、`coreutils-nohup`、`coreutils-shuf`、`hostapd-utils`、`iperf3`、`kmod-zram`、`zram-swap`、`nano`、`screen`、`socat`、`umdns`、`unzip`、`wget-ssl`
-- LuCI 通用应用：`luci-app-commands`、`luci-app-ddns`、`luci-app-samba4`、`luci-app-socat`、`luci-app-zerotier`、`luci-i18n-zerotier-zh-cn`、`luci-theme-bootstrap`、`luci-theme-argon`
+- LuCI 通用应用：`luci-app-commands`、`luci-app-ddns`、`luci-app-socat`、`luci-app-zerotier`、`luci-i18n-zerotier-zh-cn`、`luci-theme-bootstrap`、`luci-theme-argon`
+
+### SMB 后端：默认改用 ksmbd
+
+`samba4-server` 是完整的用户态 Samba4，体积和依赖都明显偏重；家庭路由器的 SMB 共享更适合使用内核态的 `ksmbd`：
+
+- 新增 `fragments/samba_ksmbd.config`：
+  - `CONFIG_PACKAGE_ksmbd-server=y`
+  - `CONFIG_PACKAGE_luci-app-ksmbd=y`
+  - 依赖 `kmod-fs-ksmbd` + `libnl`，比 Samba4 轻很多。
+- 新增 `fragments/samba4.config`：
+  - `CONFIG_PACKAGE_luci-app-samba4=y`
+  - 保留给确实需要完整 Samba4 功能的设备/场景。
+- CS-02、AP8220、AX3600 的默认 fragment 已加入 `samba_ksmbd`，即默认使用 ksmbd。
+- 两个 fragment 互斥，不要同时启用；需要完整 Samba4 时把 `samba_ksmbd` 换成 `samba4`。
+
+`luci-app-samba4` 不再放在 `compile_base.config` 中，避免所有机型被动背上完整 Samba4。
 
 保留在 CS-02 专属配置：
 
