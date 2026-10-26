@@ -112,7 +112,6 @@ stage_pre_install_source_fixes() {
     update_nginx_ubus_module
     check_default_settings
     install_opkg_distfeeds
-    fix_easytier_mk
     remove_attendedsysupgrade
     fix_kconfig_recursive_dependency
 }
@@ -127,7 +126,6 @@ stage_post_install_package_fixes() {
     verify_custom_feed_installed_paths
     docker_stack_sync_nftables_compat "$BUILD_DIR" "0"
     fix_cups_libcups_avahi_depends
-    fix_easytier_lua
     update_adguardhome
     update_script_priority
     update_geoip
