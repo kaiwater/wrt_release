@@ -253,6 +253,16 @@ ERROR: package/feeds/custom_feed/xray-core failed to build.
 
 `27.x` 分支当前是 Go 1.27.3，可满足 xray-core 的要求；sing-box 等已用 Go 1.26 成功编译的包也应保持兼容。
 
+第二次线上测试（Run 40268255697）中，AP8220 已经通过编译阶段，在最后的 `package/install` 失败：
+
+```text
+ERROR: luci-app-oaf-7.0-r1: trying to overwrite usr/share/rpcd/acl.d/luci-app-oaf.json owned by appfilter-7.0.1-r1.
+```
+
+原因：small-package 的 `appfilter` 和 `luci-app-oaf` 都会安装同一个 ACL 文件。opkg 时代通常由 `--force-overwrite` 掩盖，apk 不允许包之间覆盖文件，因此直接报错。
+
+修复：`wrt_core/modules/custom_feed.sh` 在同步 custom_feed 后删除 `appfilter/Makefile` 中重复安装 `luci-app-oaf.json` 的行，保留 `luci-app-oaf` 的 ACL 文件。
+
 ---
 
 ## 8. 后续建议

@@ -134,6 +134,24 @@ fix_emmc_health_luci_js_deps() {
 }
 
 
+fix_appfilter_acl_conflict() {
+    local package_dir="$1"
+    local makefile_path="$package_dir/Makefile"
+
+    if [ ! -f "$makefile_path" ]; then
+        echo "错误：appfilter Makefile 不存在：$makefile_path" >&2
+        return 1
+    fi
+
+    # appfilter 与 luci-app-oaf 都会安装 usr/share/rpcd/acl.d/luci-app-oaf.json。
+    # apk 不允许包之间覆盖文件，保留 luci-app-oaf 的安装项，删除后端包里的重复项。
+    if grep -q 'luci-app-oaf\.json' "$makefile_path"; then
+        sed -i '/luci-app-oaf\.json/d' "$makefile_path"
+        echo "已移除 appfilter 中与 luci-app-oaf 重复的 ACL 文件安装。"
+    fi
+}
+
+
 register_local_feed_source() {
     local custom_feed_dir="$1"
     local feeds_path="$2"
@@ -232,6 +250,11 @@ install_custom_feed() {
     fi
 
     if ! fix_emmc_health_luci_js_deps "$custom_feed_dir/luci-app-emmc-health"; then
+        rm -rf "$custom_feed_dir"
+        return 1
+    fi
+
+    if ! fix_appfilter_acl_conflict "$custom_feed_dir/appfilter"; then
         rm -rf "$custom_feed_dir"
         return 1
     fi
