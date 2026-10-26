@@ -315,16 +315,29 @@ apk 要求包版本以数字开头，`v0.3.4-r1` 会被判定为非法版本；o
 - AP8220 通过 `wireless.radioN.band` 查找 5G / 2.4G 对应的 radio，找不到时再回退到 0/1。
 - 6G 射频继续使用 `00`，避免 `CN` 直接禁用 6G。
 
-### 补齐 CS-02 遗漏软件包
+### 通用软件包安全合并（来自 IPQ807X 手工配置）
 
-对比 `jdcloud_ipq60xx_immwrt` 与 `jdcloud_ipq60xx_libwrt` 的最终配置后，CS-02 缺少以下包，已补到 `jdcloud_ipq60xx_libwrt.config`：
+根据 `~/Downloads/IPQ807X (2).config` 与 immwrt CS-02 配置做对比，只把**通用软件**合并到 `compile_base.config`，设备专属、代理栈和硬件相关项不进入 base。
 
-- `coreutils`、`coreutils-base64`、`coreutils-cksum`、`coreutils-nohup`、`coreutils-shuf`
-- `at`、`bash`、`bc`、`bind-dig`、`btop`、`hostapd-utils`、`iperf3`
-- `luci-app-commands`、`luci-app-socat`、`luci-app-tailscale`、`luci-app-zerotier`、`luci-i18n-zerotier-zh-cn`
-- `luci-theme-bootstrap`、`nano`、`screen`、`socat`、`umdns`
+已合并到 base：
 
-其中 `luci-app-socat`、`luci-app-tailscale` 已加入 custom_feed 同步列表和 required 目录检查。
+- 命令行工具：`at`、`bash`、`bc`、`bind-dig`、`btop`、`coreutils`、`coreutils-base64`、`coreutils-cksum`、`coreutils-nohup`、`coreutils-shuf`、`hostapd-utils`、`iperf3`、`kmod-zram`、`zram-swap`、`nano`、`screen`、`socat`、`umdns`、`unzip`、`wget-ssl`
+- LuCI 通用应用：`luci-app-commands`、`luci-app-ddns`、`luci-app-samba4`、`luci-app-socat`、`luci-app-zerotier`、`luci-i18n-zerotier-zh-cn`、`luci-theme-bootstrap`、`luci-theme-argon`
+
+保留在 CS-02 专属配置：
+
+- `luci-app-athena-led`、`luci-app-cupsd`、`luci-app-dockerman`、`luci-app-emmc-health`、`luci-app-quickfile`、`luci-app-tailscale`
+- `ath11k-firmware-qcn9074-ddwrt`、`luci-app-sqm`
+
+明确跳过、没有合并的项：
+
+- 代理栈：`luci-app-passwall`、`luci-app-homeproxy`、`xray-core`、`sing-box`、`sing-box-tiny`、`shadowsocks-rust-*`、`shadowsocksr-libev-*`、`v2ray-plugin`、`tuic-client`、`hysteria`、`microsocks`、`chinadns-ng`、`dns2socks`、`geoview`、`ipt2socks`、`tcping` 等
+- `ip-full`：与默认 `ip-tiny` 存在替代/冲突关系，避免为了一个工具引入全局包替换
+- `luci-app-partexp`：分区工具且当前不在 custom_feed 同步列表中，暂不引入
+- `dnsmasq-full` 及其子选项：仓库已有 `change_dnsmasq2full` 统一处理
+- `luci-app-passwall_INCLUDE_*`：属于 passwall 子选项，不是独立通用软件
+
+`luci-app-socat`、`luci-app-tailscale` 已加入 custom_feed 同步列表和 required 目录检查。
 
 ---
 
