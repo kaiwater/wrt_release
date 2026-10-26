@@ -136,16 +136,20 @@ update_ath11k_fw() {
     local ipq807_target="$BUILD_DIR/target/linux/qualcommax/ipq807x/target.mk"
 
     if [ -d "$(dirname "$makefile")" ]; then
-        echo "正在更新 ath11k-firmware Makefile..."
-        if ! curl_retry -fsSL -o "$new_mk" "$url"; then
-            echo "错误：从 $url 下载 ath11k-firmware Makefile 失败" >&2
-            exit 1
+        if [ -s "$new_mk" ]; then
+            echo "使用仓库内置的 ath11k-firmware Makefile：$new_mk"
+        else
+            echo "正在更新 ath11k-firmware Makefile..."
+            if ! curl_retry -fsSL -o "$new_mk" "$url"; then
+                echo "错误：从 $url 下载 ath11k-firmware Makefile 失败" >&2
+                exit 1
+            fi
+            if [ ! -s "$new_mk" ]; then
+                echo "错误：下载的 ath11k-firmware Makefile 为空文件" >&2
+                exit 1
+            fi
         fi
-        if [ ! -s "$new_mk" ]; then
-            echo "错误：下载的 ath11k-firmware Makefile 为空文件" >&2
-            exit 1
-        fi
-        mv -f "$new_mk" "$makefile"
+        cp -f "$new_mk" "$makefile"
 
         if [ -f "$ipq60_target" ]; then
             sed -i 's/ath11k-firmware-ipq6018\([^-[:alnum:]_]\|$\)/ath11k-firmware-ipq6018-ddwrt\1/g' "$ipq60_target"

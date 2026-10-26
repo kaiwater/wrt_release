@@ -164,14 +164,15 @@ install_custom_feed() {
         luci-app-quickstart luci-app-istorex luci-app-cloudflarespeedtest netdata luci-app-netdata \
         lucky luci-app-lucky luci-app-openclash luci-app-homeproxy luci-app-amlogic \
         oaf open-app-filter luci-app-oaf easytier luci-app-easytier \
-        msd_lite luci-app-msd_lite cups luci-app-cupsd
+        msd_lite luci-app-msd_lite cups luci-app-cupsd \
+        luci-app-quickfile/luci-app-quickfile luci-app-quickfile/quickfile
     )
     local required_feed_dirs=(
         cups tcping v2ray-geodata luci-lib-taskd luci-app-openclash
         luci-app-quickstart luci-app-store luci-app-homeproxy luci-app-mosdns
         luci-app-passwall nikki luci-app-nikki mihomo-meta
         open-app-filter luci-app-oaf lucky luci-app-lucky luci-app-easytier
-        luci-app-emmc-health
+        luci-app-emmc-health luci-app-quickfile
     )
     local custom_feed_sources=()
     local missing_feed_dirs=()
@@ -196,6 +197,13 @@ install_custom_feed() {
         "Openwrt-Passwall/openwrt-passwall|https://github.com/Openwrt-Passwall/openwrt-passwall.git|main|luci-app-passwall"
         "nikkinikki-org/OpenWrt-nikki|https://github.com/nikkinikki-org/OpenWrt-nikki.git|main|nikki luci-app-nikki mihomo-meta"
     )
+
+    # VIKINGYFY 的源码树本身已包含 package/emortal/luci-app-athena-led。
+    # 若再从外部同步同名包，会出现重复包名，导致 feeds 安装失败。
+    if [ ! -d "$BUILD_DIR/package/emortal/luci-app-athena-led" ]; then
+        custom_feed_sources+=("VIKINGYFY/immortalwrt|https://github.com/VIKINGYFY/immortalwrt.git|main|package/emortal/luci-app-athena-led")
+        required_feed_dirs+=(luci-app-athena-led)
+    fi
 
     feeds_path=$(get_feeds_path)
     custom_feed_name=$(get_custom_feed_name)

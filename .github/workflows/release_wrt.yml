@@ -29,6 +29,8 @@ on:
           - zn_m2_libwrt
           - x64_immwrt
           - supergateway_s20m_immwrt
+          - xiaomi_ax3600_libwrt
+          - libwrt_all
       add_fragments:
         required: false
         description: Add config fragments, comma separated
@@ -42,10 +44,26 @@ env:
   GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
 jobs:
+  prepare:
+    runs-on: ubuntu-24.04
+    outputs:
+      models: ${{ steps.set.outputs.models }}
+    steps:
+      - id: set
+        run: |
+          if [ "${{ inputs.model }}" = "libwrt_all" ]; then
+            echo 'models=["jdcloud_ipq60xx_libwrt","aliyun_ap8220_libwrt","xiaomi_ax3600_libwrt"]' >> "$GITHUB_OUTPUT"
+          else
+            echo 'models=["${{ inputs.model }}"]' >> "$GITHUB_OUTPUT"
+          fi
+
   build:
+    needs: prepare
     strategy:
+      fail-fast: false
       matrix:
         os: [ubuntu-24.04]
+        model: ${{ fromJSON(needs.prepare.outputs.models) }}
     runs-on: ${{ matrix.os }}
 
     steps:
@@ -86,11 +104,11 @@ jobs:
           sanitize_cache_key_part() { printf '%s' "$1" | tr -c 'A-Za-z0-9_.-' '_'; }
           echo "ADD_CONFIG_FRAGMENTS_KEY=$(sanitize_cache_key_part "$RAW_ADD_CONFIG_FRAGMENTS")" >> $GITHUB_ENV
           echo "REMOVE_CONFIG_FRAGMENTS_KEY=$(sanitize_cache_key_part "$RAW_REMOVE_CONFIG_FRAGMENTS")" >> $GITHUB_ENV
-          export BUILD_SRC=$(awk -F"=" '/REPO_URL/ {print $NF}' "./wrt_core/compilecfg/${{ inputs.model }}.ini")
+          export BUILD_SRC=$(awk -F"=" '/REPO_URL/ {print $NF}' "./wrt_core/compilecfg/${{ matrix.model }}.ini")
           echo "BUILD_SRC=$BUILD_SRC" >> $GITHUB_ENV
 
       - name: Pre Clone
-        run: ./wrt_core/pre_clone_action.sh ${{ inputs.model }}
+        run: ./wrt_core/pre_clone_action.sh ${{ matrix.model }}
 
       - name: Cache Dependencies
         uses: actions/cache@v6.1.0
@@ -98,10 +116,10 @@ jobs:
           path: |
             ./action_build/.ccache
             ./action_build/staging_dir
-          key: ${{ matrix.os }}-${{ inputs.model }}-${{ hashFiles('**/repo_flag') }}-${{ env.ADD_CONFIG_FRAGMENTS_KEY }}-${{ env.REMOVE_CONFIG_FRAGMENTS_KEY }}-${{ env.BUILD_DATE }}
+          key: ${{ matrix.os }}-${{ matrix.model }}-${{ hashFiles('**/repo_flag') }}-${{ env.ADD_CONFIG_FRAGMENTS_KEY }}-${{ env.REMOVE_CONFIG_FRAGMENTS_KEY }}-${{ env.BUILD_DATE }}
           restore-keys: |
-            ${{ matrix.os }}-${{ inputs.model }}-${{ hashFiles('**/repo_flag') }}-${{ env.ADD_CONFIG_FRAGMENTS_KEY }}-${{ env.REMOVE_CONFIG_FRAGMENTS_KEY }}-
-            ${{ matrix.os }}-${{ inputs.model }}-${{ hashFiles('**/repo_flag') }}-
+            ${{ matrix.os }}-${{ matrix.model }}-${{ hashFiles('**/repo_flag') }}-${{ env.ADD_CONFIG_FRAGMENTS_KEY }}-${{ env.REMOVE_CONFIG_FRAGMENTS_KEY }}-
+            ${{ matrix.os }}-${{ matrix.model }}-${{ hashFiles('**/repo_flag') }}-
 
       - name: Refresh the cache
         run: |
@@ -142,7 +160,7 @@ jobs:
         env:
           ADD_CONFIG_FRAGMENTS: ${{ inputs.add_fragments }}
           REMOVE_CONFIG_FRAGMENTS: ${{ inputs.remove_fragments }}
-        run: ./build.sh ${{ inputs.model }}
+        run: ./build.sh ${{ matrix.model }}
 
       - name: Get Kernel Verion
         run: |
@@ -152,7 +170,7 @@ jobs:
       - name: Delete Old Cache
         run: |
           # 获取缓存列表并删除
-          gh cache list --key ${{ matrix.os }}-${{ inputs.model }}-${{ hashFiles('**/repo_flag') }}- --json key --jq '.[] | .key' | while read -r key; do
+          gh cache list --key ${{ matrix.os }}-${{ matrix.model }}-${{ hashFiles('**/repo_flag') }}- --json key --jq '.[] | .key' | while read -r key; do
             gh cache delete "$key"
           done
           # 输出缓存状态
@@ -207,14 +225,14 @@ jobs:
           fi
 
           kmod_count=$(wc -l < "$KMOD_LIST" | tr -d '[:space:]')
-          archive_name="kmods_${{ inputs.model }}_${KVER:-unknown-kernel}_${BUILD_DATE}.tar.gz"
+          archive_name="kmods_${{ matrix.model }}_${KVER:-unknown-kernel}_${BUILD_DATE}.tar.gz"
           tar -C ./action_build/bin -czf "$archive_name" -T "$KMOD_LIST"
 
           echo "KMOD_ARCHIVE=$archive_name" >> "$GITHUB_ENV"
           echo "Packaged $kmod_count kmod packages into $archive_name"
 
       - name: Package OpenWrt Firmware
-        if: ${{ inputs.model == 'n1_immwrt' }}
+        if: ${{ matrix.model == 'n1_immwrt' }}
         uses: unifreq/openwrt_packit@8007d3efd49bb42aa20c5755a50af21dc7a438e1
         env:
           OPENWRT_ARMVIRT: firmware/*.tar.gz
@@ -236,9 +254,9 @@ jobs:
       - name: Release Firmware
         uses: softprops/action-gh-release@v3.0.1
         with:
-          tag_name: ${{ env.BUILD_DATE }}_${{ inputs.model }}
+          tag_name: ${{ env.BUILD_DATE }}_${{ matrix.model }}
           files: |
-            ${{ inputs.model == 'n1_immwrt' && env.PACKAGED_OUTPUTPATH || './firmware' }}/*.*
+            ${{ matrix.model == 'n1_immwrt' && env.PACKAGED_OUTPUTPATH || './firmware' }}/*.*
             ./kmods_*.tar.gz
           fail_on_unmatched_files: true
           body_path: ./release_body.txt

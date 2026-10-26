@@ -59,6 +59,10 @@ REMOVE_CONFIG_FRAGMENTS=proxy ./build.sh x64_immwrt config_preview
 
 GitHub Actions 的手动构建也提供 `add_fragments` 与 `remove_fragments` 输入项，语义与上述环境变量一致。
 
+`Build WRT` / `Release WRT` 的 `model` 输入选择 `libwrt_all` 时，会并行构建三个 LiBwrt 机型：`jdcloud_ipq60xx_libwrt`（ipq60xx / RE-CS-02）、`aliyun_ap8220_libwrt`（ipq807x / 1G NSS 档位）和 `xiaomi_ax3600_libwrt`（ipq807x / 512M NSS 档位）。
+
+`compile_base.config` 默认使用 apk（`CONFIG_USE_APK=y`）。immortalwrt / LiBwrt 25.12 系列上游本身以 apk 为默认；仍使用 opkg 的旧分支（如 padavanonly 21.02/24.10）会忽略该符号，保持原有 opkg 构建。
+
 编译完成后，脚本会从 `<BUILD_DIR>/bin/targets/` 收集固件文件到仓库根目录的 `firmware/`。每次完整构建前会清理旧的目标固件文件，`firmware/Packages.manifest` 会被移除。
 
 ## 5. 支持设备
@@ -68,7 +72,7 @@ GitHub Actions 的手动构建也提供 `add_fragments` 与 `remove_fragments` �
 | 厂商 / 平台 | 设备 | 配置名 |
 | --- | --- | --- |
 | 京东云 | 雅典娜(02)、亚瑟(01)、太乙(07)、AX5(JDC版) | `jdcloud_ipq60xx_immwrt` |
-| 京东云 | 雅典娜(02)、亚瑟(01)、太乙(07)、AX5(JDC版) - LiBwrt | `jdcloud_ipq60xx_libwrt` |
+| 京东云 | 雅典娜(02) - LiBwrt | `jdcloud_ipq60xx_libwrt` |
 | 京东云 | 百里 / AX6000 | `jdcloud_ax6000_immwrt` |
 | 阿里云 | AP8220 | `aliyun_ap8220_immwrt` |
 | 阿里云 | AP8220 - LiBwrt | `aliyun_ap8220_libwrt` |
@@ -78,6 +82,7 @@ GitHub Actions 的手动构建也提供 `add_fragments` 与 `remove_fragments` �
 | 红米 | AX5 | `redmi_ax5_immwrt` |
 | 红米 | AX6 | `redmi_ax6_immwrt` |
 | 红米 | AX6 - LiBwrt | `redmi_ax6_libwrt` |
+| 小米 | AX3600 - LiBwrt | `xiaomi_ax3600_libwrt` |
 | 红米 | AX6000 | `redmi_ax6000_immwrt21` |
 | CMCC（中国移动） | RAX3000M | `cmcc_rax3000m_immwrt` |
 | 斐讯 | N1 | `n1_immwrt` |
@@ -101,7 +106,7 @@ GitHub Actions 的手动构建也提供 `add_fragments` 与 `remove_fragments` �
 - `wrt_core/compilecfg/<设备配置名>.ini`：定义源码仓库、分支、构建目录、默认配置片段、可选提交哈希和容器 SDK 镜像。
 - `wrt_core/deconfig/<设备配置名>.config`：定义 OpenWrt 目标平台、设备和软件包配置。
 
-不同设备会使用不同上游源码，例如 `VIKINGYFY/immortalwrt`、`immortalwrt/immortalwrt`、`LiBwrt/openwrt-6.x`、`padavanonly/immortalwrt-mt798x` 或本仓库维护的特定分支。`BUILD_TARGET_SDK` 未配置时，容器构建默认使用 `immortalwrt/sdk:openwrt-25.12`。
+不同设备会使用不同上游源码，例如 `VIKINGYFY/immortalwrt`、`immortalwrt/immortalwrt`、`LiBwrt/LibWrt`、`padavanonly/immortalwrt-mt798x` 或本仓库维护的特定分支。`BUILD_TARGET_SDK` 未配置时，容器构建默认使用 `immortalwrt/sdk:openwrt-25.12`。
 
 构建时会按顺序组合配置：
 
@@ -113,6 +118,8 @@ GitHub Actions 的手动构建也提供 `add_fragments` 与 `remove_fragments` �
 
 - 所有设备默认包含 `proxy`。
 - IPQ60xx / IPQ807x 设备默认额外包含 `nss`。
+- 512MB 内存的 IPQ807x 设备（如 AX3600）额外包含 `nss_mem_512m`，用于把 `nss` 中的 1G NSS 内存档位覆盖为 512M；该片段必须排在 `nss` 之后。
+- `nss` 默认使用 12.5 NSS 固件/驱动（与 qosmio NSS-12.5 feed 和 VIKINGYFY 当前版本一致）。如果需要 NSS mesh (802.11s)、WDS 或 IPQ807x RMNET，请在 `nss` 之后追加 `nss_fw_11_4`，切回 11.4 固件/驱动。
 - 只有已显式选择 Dockerman 或明确适合运行 Docker 的设备默认包含 `docker_deps`，用于预置手动安装 Docker 所需的运行依赖，避免 NAND 空间紧张或无 USB 设备被默认加入 Docker 依赖。
 
 `ADD_CONFIG_FRAGMENTS` 会在默认片段后追加，`REMOVE_CONFIG_FRAGMENTS` 会从最终片段中移除对应配置片段。移除只表示“不追加这个 fragment”，不会反向修改设备 `.config` 或 `compile_base.config` 中已经写明的配置。
