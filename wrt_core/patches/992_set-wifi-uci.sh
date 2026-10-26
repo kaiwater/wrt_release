@@ -1,5 +1,7 @@
 #!/bin/sh
 
+WIFI_COUNTRY="__WIFI_COUNTRY__"
+
 board_name=$(cat /tmp/sysinfo/board_name)
 
 configure_wifi() {
@@ -10,18 +12,23 @@ configure_wifi() {
 	local ssid=$5
 	local key=$6
 	local encryption=${7:-"psk2+ccmp"} # 新增 encryption 参数，如果为空则默认为 psk2+ccmp
-	local now_encryption=$(uci get wireless.default_radio${radio}.encryption)
-	if [ -n "$now_encryption" ] && [ "$now_encryption" != "none" ]; then
-		return 0
-	fi
+	local now_encryption=$(uci -q get wireless.default_radio${radio}.encryption)
+
+	# 射频级参数始终写入，避免从其他固件迁移后因为接口已有加密而跳过，
+	# 导致某个频段继续使用旧国家码/auto 信道。
 	uci -q batch <<EOF
 set wireless.radio${radio}.channel="${channel}"
 set wireless.radio${radio}.htmode="${htmode}"
 set wireless.radio${radio}.mu_beamformer='1'
-set wireless.radio${radio}.country='US'
+set wireless.radio${radio}.country="${WIFI_COUNTRY}"
 set wireless.radio${radio}.txpower="${txpower}"
 set wireless.radio${radio}.cell_density='0'
 set wireless.radio${radio}.disabled='0'
+EOF
+
+	# 接口级 SSID/加密只在尚未配置时写入，保留用户已有设置。
+	if [ -z "$now_encryption" ] || [ "$now_encryption" = "none" ]; then
+		uci -q batch <<EOF
 set wireless.default_radio${radio}.ssid="${ssid}"
 set wireless.default_radio${radio}.encryption="${encryption}"
 set wireless.default_radio${radio}.key="${key}"
@@ -32,6 +39,7 @@ set wireless.default_radio${radio}.bss_transition='1'
 set wireless.default_radio${radio}.wnm_sleep_mode='1'
 set wireless.default_radio${radio}.wnm_sleep_mode_no_keys='1'
 EOF
+	fi
 }
 
 configure_wifi7() {
@@ -44,22 +52,26 @@ configure_wifi7() {
 	local encryption=${7:-"psk2"} # 新增 encryption 参数，如果为空则默认为 psk2
 	local now_encryption=$(uci -q get wireless.default_radio${radio}.encryption)
 	local bandmode=$(uci -q get wireless.radio${radio}.band)
-	if [ "$bandmode" = "6g" ] && [ "$now_encryption" = "$encryption" ]; then
-		return 0
-	fi
-	if [ "$bandmode" != "6g" ] && [ -n "$now_encryption" ] && [ "$now_encryption" != "none" ]; then
-		return 0
-	fi
+	local country="$WIFI_COUNTRY"
+
+	# 6G 使用 world 国家码，避免 CN 直接禁用 6G 频段。
+	[ "$bandmode" = "6g" ] && country='00'
+
+	# 射频级参数始终写入，避免接口已有加密时跳过国家码/信道。
 	uci -q batch <<EOF
 set wireless.radio${radio}.channel="${channel}"
 set wireless.radio${radio}.htmode="${htmode}"
 set wireless.radio${radio}.disabled='0'
-set wireless.radio${radio}.country='US'
+set wireless.radio${radio}.country="${country}"
 set wireless.radio${radio}.sku_idx='0'
 set wireless.radio${radio}.he_twt_responder='1'
 set wireless.radio${radio}.cell_density='0'
 set wireless.radio${radio}.txpower="${txpower}"
 set wireless.radio${radio}.noscan='0'
+EOF
+
+	if [ -z "$now_encryption" ] || [ "$now_encryption" = "none" ]; then
+		uci -q batch <<EOF
 set wireless.default_radio${radio}.ssid="${ssid}"
 set wireless.default_radio${radio}.encryption="${encryption}"
 set wireless.default_radio${radio}.key="${key}"
@@ -69,6 +81,7 @@ set wireless.default_radio${radio}.time_zone='CST-8'
 set wireless.default_radio${radio}.bss_transition='1'
 set wireless.default_radio${radio}.wmm='1'
 EOF
+	fi
 	if [ "$bandmode" = "2g" ]; then
 		uci -q batch <<EOF
 set wireless.radio${radio}.legacy_rates='1'
@@ -102,9 +115,32 @@ redmi_ax5_wifi_cfg() {
 	configure_wifi 1 1 HE20 20 'Redmi_AX5' '12345678'
 }
 
+find_radio_by_band() {
+	local band=$1
+	local i
+
+	for i in 0 1 2 3; do
+		if [ "$(uci -q get wireless.radio${i}.band)" = "$band" ]; then
+			echo "$i"
+			return 0
+		fi
+	done
+
+	return 1
+}
+
 aliyun_ap8220_wifi_cfg() {
-	configure_wifi 0 149 HE80 26 'Aliyun_AP8220_5G' '12345678'
-	configure_wifi 1 1 HE20 23 'Aliyun_AP8220' '12345678'
+	local radio5 radio2
+
+	radio5=$(find_radio_by_band 5g)
+	radio2=$(find_radio_by_band 2g)
+
+	# 旧版/未生成 band 时退回 AP8220 的默认顺序。
+	[ -n "$radio5" ] || radio5=0
+	[ -n "$radio2" ] || radio2=1
+
+	configure_wifi "$radio5" 149 HE80 26 'Aliyun_AP8220_5G' '12345678'
+	configure_wifi "$radio2" 1 HE20 23 'Aliyun_AP8220' '12345678'
 }
 
 cmcc_rax3000m_wifi_cfg() {

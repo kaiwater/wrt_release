@@ -184,6 +184,7 @@ install_custom_feed() {
         lucky luci-app-lucky luci-app-openclash luci-app-homeproxy luci-app-amlogic \
         oaf open-app-filter luci-app-oaf easytier luci-app-easytier \
         msd_lite luci-app-msd_lite cups luci-app-cupsd \
+        luci-app-socat luci-app-tailscale \
         luci-app-quickfile/luci-app-quickfile luci-app-quickfile/quickfile
     )
     local required_feed_dirs=(
@@ -191,7 +192,7 @@ install_custom_feed() {
         luci-app-quickstart luci-app-store luci-app-homeproxy luci-app-mosdns
         luci-app-passwall nikki luci-app-nikki mihomo-meta
         open-app-filter luci-app-oaf lucky luci-app-lucky luci-app-easytier
-        luci-app-emmc-health luci-app-quickfile
+        luci-app-emmc-health luci-app-quickfile luci-app-socat luci-app-tailscale
     )
     local custom_feed_sources=()
     local missing_feed_dirs=()

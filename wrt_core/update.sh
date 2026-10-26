@@ -25,6 +25,7 @@ GOLANG_REPO="https://github.com/sbwml/packages_lang_golang"
 GOLANG_BRANCH="27.x"
 THEME_SET="argon"
 LAN_ADDR="192.168.1.1"
+WIFI_COUNTRY="CN"
 
 SCRIPT_DIR=$(cd $(dirname $0) && pwd)
 BASE_PATH=${BASE_PATH:-$SCRIPT_DIR}

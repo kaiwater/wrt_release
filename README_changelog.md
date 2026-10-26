@@ -229,6 +229,7 @@ ADD_CONFIG_FRAGMENTS=nss_fw_11_4 ./build.sh jdcloud_ipq60xx_libwrt
 - `wrt_core/deconfig/n1_immwrt.config`
 - `wrt_core/modules/custom_feed.sh`
 - `wrt_core/modules/target_fixes.sh`
+- `wrt_core/patches/992_set-wifi-uci.sh`
 - `wrt_core/update.sh`
 
 ---
@@ -292,6 +293,38 @@ PKG_VERSION:=v0.5.26
 apk 要求包版本以数字开头，`v0.3.4-r1` 会被判定为非法版本；opkg 之前接受这种写法。
 
 修复：在 `wrt_core/modules/package_source_updates.sh` 增加 `fix_apk_leading_v_version()`，同步后把 `PKG_VERSION:=v...` 改为 `PKG_VERSION:=...`，对 `luci-lib-docker` 和 `luci-app-dockerman` 都生效。
+
+### WiFi 国家码与 AP8220 频段修复
+
+从 VIKINGYFY 迁移到 LibWrt 后发现：
+
+- AP8220 的 2.4G 国家码变成 `US`
+- 5G 可能因为接口已有加密而跳过配置，停留在 `auto`，自动落到 100 信道
+- 手动设置可以恢复，但默认配置不应该这样
+
+原因：`wrt_core/patches/992_set-wifi-uci.sh` 里：
+
+1. `country='US'` 是硬编码的；
+2. `configure_wifi()` 在 `default_radioX.encryption` 已有非 `none` 值时直接 `return 0`，会连射频级的 channel / country / txpower 一起跳过；
+3. AP8220 使用固定 `radio0=5G`、`radio1=2.4G`，LibWrt 的 phy 枚举顺序可能不同。
+
+修复：
+
+- `update.sh` 增加 `WIFI_COUNTRY="CN"`，`target_fixes.sh` 安装脚本时替换 `__WIFI_COUNTRY__`；需要其他区域时只改这一处。
+- `configure_wifi()` / `configure_wifi7()` 的射频级参数（channel、htmode、country、txpower、cell_density 等）始终写入；接口级 SSID / 加密 / key 只在未配置时写入，保留用户已有 AP 设置。
+- AP8220 通过 `wireless.radioN.band` 查找 5G / 2.4G 对应的 radio，找不到时再回退到 0/1。
+- 6G 射频继续使用 `00`，避免 `CN` 直接禁用 6G。
+
+### 补齐 CS-02 遗漏软件包
+
+对比 `jdcloud_ipq60xx_immwrt` 与 `jdcloud_ipq60xx_libwrt` 的最终配置后，CS-02 缺少以下包，已补到 `jdcloud_ipq60xx_libwrt.config`：
+
+- `coreutils`、`coreutils-base64`、`coreutils-cksum`、`coreutils-nohup`、`coreutils-shuf`
+- `at`、`bash`、`bc`、`bind-dig`、`btop`、`hostapd-utils`、`iperf3`
+- `luci-app-commands`、`luci-app-socat`、`luci-app-tailscale`、`luci-app-zerotier`、`luci-i18n-zerotier-zh-cn`
+- `luci-theme-bootstrap`、`nano`、`screen`、`socat`、`umdns`
+
+其中 `luci-app-socat`、`luci-app-tailscale` 已加入 custom_feed 同步列表和 required 目录检查。
 
 ---
 
