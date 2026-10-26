@@ -162,6 +162,18 @@ update_ath11k_fw() {
             sed -i 's/ath11k-firmware-ipq8074\([^-[:alnum:]_]\|$\)/ath11k-firmware-ipq8074-ddwrt\1/g' "$ipq807_target"
         fi
 
+        # 设备定义（image/*.mk）也会直接写死默认固件包名；只改 target.mk
+        # 会留下 ath11k-firmware-qcn9074 之类的旧名，apk 在 target install 阶段会报 no such package。
+        local image_dir="$BUILD_DIR/target/linux/qualcommax/image"
+        local image_mk
+        for image_mk in "$image_dir/ipq50xx.mk" "$image_dir/ipq60xx.mk" "$image_dir/ipq807x.mk"; do
+            [ -f "$image_mk" ] || continue
+            sed -i 's/ath11k-firmware-ipq5018\([^-[:alnum:]_]\|$\)/ath11k-firmware-ipq5018-ddwrt\1/g' "$image_mk"
+            sed -i 's/ath11k-firmware-ipq6018\([^-[:alnum:]_]\|$\)/ath11k-firmware-ipq6018-ddwrt\1/g' "$image_mk"
+            sed -i 's/ath11k-firmware-ipq8074\([^-[:alnum:]_]\|$\)/ath11k-firmware-ipq8074-ddwrt\1/g' "$image_mk"
+            sed -i 's/ath11k-firmware-qcn9074\([^-[:alnum:]_]\|$\)/ath11k-firmware-qcn9074-ddwrt\1/g' "$image_mk"
+        done
+
         if [ -f "$ipq60_target" ] || [ -f "$ipq807_target" ]; then
             echo "已同步 ipq60xx/ipq807x ath11k 固件依赖为 ddwrt 包名。"
         fi

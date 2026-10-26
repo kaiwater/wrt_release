@@ -212,6 +212,7 @@ ADD_CONFIG_FRAGMENTS=nss_fw_11_4 ./build.sh jdcloud_ipq60xx_libwrt
 - `wrt_core/deconfig/fragments/nss_fw_11_4.config`
 - `wrt_core/deconfig/fragments/samba_ksmbd.config`
 - `wrt_core/deconfig/fragments/samba4.config`
+- `wrt_core/deconfig/fragments/usb_storage.config`
 - `wrt_core/patches/ath11k_fw.mk`
 - `README_changelog.md`
 
@@ -341,6 +342,44 @@ apk 要求包版本以数字开头，`v0.3.4-r1` 会被判定为非法版本；o
 - 两个 fragment 互斥，不要同时启用；需要完整 Samba4 时把 `samba_ksmbd` 换成 `samba4`。
 
 `luci-app-samba4` 不再放在 `compile_base.config` 中，避免所有机型被动背上完整 Samba4。
+
+### USB 支持按设备拆分
+
+硬件差异：
+
+- **AX3600 没有 USB 口**
+- **CS-02 / AP8220 有 USB 3.0**
+
+因此从 `compile_base.config` 移除了所有 USB host/net/storage kmod 和 `usbutils` / `usbmuxd`，新增 `fragments/usb_storage.config`，只在有 USB 的设备启用：
+
+- CS-02：`nss,samba_ksmbd,usb_storage,docker_deps,proxy`
+- AP8220：`nss,samba_ksmbd,usb_storage,proxy`
+- AX3600：`nss,nss_mem_512m,samba_ksmbd,proxy`（不含 USB）
+
+AX3600 的 LibWrt 设备定义本身也会移除 `kmod-usb3` / `kmod-usb-dwc3` / `kmod-usb-dwc3-qcom`，现在 base 也不再额外加入 USB 包，镜像不会再带无用的 USB 驱动。
+
+### jdcloud apk 固件包名修复
+
+Run 40330163237 的 jdcloud 在 target install 阶段失败：
+
+```text
+ERROR: unable to select packages:
+  ath11k-firmware-qcn9074 (no such package):
+    required by: world[ath11k-firmware-qcn9074]
+```
+
+原因：`update_ath11k_fw()` 把 `ath11k-firmware/Makefile` 换成了只提供 `-ddwrt` 包名的版本，并重写了 `target.mk`，但 `target/linux/qualcommax/image/*.mk` 的设备 `DEVICE_PACKAGES` 里仍然写死 `ath11k-firmware-qcn9074` 等旧包名。AP8220 / AX3600 的设备定义没有这个旧包名，所以没有触发；CS-02 的 `ipq60xx.mk` 有，最终在 apk 安装时找不到包。
+
+修复：`update_ath11k_fw()` 现在同时重写：
+
+- `target/linux/qualcommax/ipq50xx/target.mk`
+- `target/linux/qualcommax/ipq60xx/target.mk`
+- `target/linux/qualcommax/ipq807x/target.mk`
+- `target/linux/qualcommax/image/ipq50xx.mk`
+- `target/linux/qualcommax/image/ipq60xx.mk`
+- `target/linux/qualcommax/image/ipq807x.mk`
+
+把 `ath11k-firmware-ipq5018`、`ipq6018`、`ipq8074`、`qcn9074` 统一改成 `-ddwrt` 包名。
 
 保留在 CS-02 专属配置：
 

@@ -121,6 +121,7 @@ GitHub Actions 的手动构建也提供 `add_fragments` 与 `remove_fragments` �
 - 512MB 内存的 IPQ807x 设备（如 AX3600）额外包含 `nss_mem_512m`，用于把 `nss` 中的 1G NSS 内存档位覆盖为 512M；该片段必须排在 `nss` 之后。
 - `nss` 默认使用 12.5 NSS 固件/驱动（与 qosmio NSS-12.5 feed 和 VIKINGYFY 当前版本一致）。如果需要 NSS mesh (802.11s)、WDS 或 IPQ807x RMNET，请在 `nss` 之后追加 `nss_fw_11_4`，切回 11.4 固件/驱动。
 - SMB 共享默认使用轻量的 `samba_ksmbd`（`ksmbd-server` + `luci-app-ksmbd`）；需要完整 Samba4 时用 `samba4` 替换，两者不要同时启用。
+- USB 支持按设备启用：CS-02 / AP8220 使用 `usb_storage`（USB 3.0 + 存储/网络 kmod），AX3600 没有 USB 口，不启用该 fragment。
 - 只有已显式选择 Dockerman 或明确适合运行 Docker 的设备默认包含 `docker_deps`，用于预置手动安装 Docker 所需的运行依赖，避免 NAND 空间紧张或无 USB 设备被默认加入 Docker 依赖。
 
 `ADD_CONFIG_FRAGMENTS` 会在默认片段后追加，`REMOVE_CONFIG_FRAGMENTS` 会从最终片段中移除对应配置片段。移除只表示“不追加这个 fragment”，不会反向修改设备 `.config` 或 `compile_base.config` 中已经写明的配置。
