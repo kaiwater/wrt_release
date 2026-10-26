@@ -149,6 +149,17 @@ update_diskman() {
 }
 
 
+fix_apk_leading_v_version() {
+    local makefile_path="$1"
+    local package_name="$2"
+
+    if [ -f "$makefile_path" ] && grep -q '^PKG_VERSION:=v' "$makefile_path"; then
+        sed -i 's/^PKG_VERSION:=v/PKG_VERSION:=/' "$makefile_path"
+        echo "已移除 $package_name 版本号的前导 v（apk 要求版本以数字开头）。"
+    fi
+}
+
+
 _sync_luci_lib_docker() {
     local lib_path="$BUILD_DIR/feeds/luci/libs/luci-lib-docker"
     local repo_url="https://github.com/lisaac/luci-lib-docker.git"
@@ -175,6 +186,8 @@ _sync_luci_lib_docker() {
         cd "$BUILD_DIR"
         echo "luci-lib-docker 同步完成"
     fi
+
+    fix_apk_leading_v_version "$lib_path/Makefile" "luci-lib-docker"
 }
 
 
@@ -204,6 +217,8 @@ update_dockerman() {
         cd .. || return
         \rm -rf dockerman
         cd "$BUILD_DIR"
+
+        fix_apk_leading_v_version "$BUILD_DIR/feeds/luci/applications/luci-app-dockerman/Makefile" "luci-app-dockerman"
 
         if declare -F docker_stack_sync_dockerman_nftables_compat >/dev/null 2>&1; then
             docker_stack_sync_dockerman_nftables_compat "$BUILD_DIR" "0" || return 1

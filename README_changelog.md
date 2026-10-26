@@ -268,6 +268,31 @@ ERROR: luci-app-oaf-7.0-r1: trying to overwrite usr/share/rpcd/acl.d/luci-app-oa
 
 不是简单删除 appfilter 的 ACL，避免 OAF 的 ubus 页面权限缺失。
 
+第三次测试（Run 40293290928）：
+
+- `xiaomi_ax3600_libwrt` ✅ 成功，1h34m
+- `aliyun_ap8220_libwrt` ✅ 成功，1h42m
+- `jdcloud_ipq60xx_libwrt` ❌ 4h41m 后失败
+
+jdcloud 的失败点：
+
+```text
+ERROR: info field 'version' has invalid value: package version is invalid
+ERROR: failed to create package: package version is invalid
+make[3]: *** [.../luci-lib-docker-v0.3.4-r1.apk] Error 99
+```
+
+原因：仓库从 `lisaac/luci-lib-docker` 和 `lisaac/luci-app-dockerman` 同步的包使用：
+
+```make
+PKG_VERSION:=v0.3.4
+PKG_VERSION:=v0.5.26
+```
+
+apk 要求包版本以数字开头，`v0.3.4-r1` 会被判定为非法版本；opkg 之前接受这种写法。
+
+修复：在 `wrt_core/modules/package_source_updates.sh` 增加 `fix_apk_leading_v_version()`，同步后把 `PKG_VERSION:=v...` 改为 `PKG_VERSION:=...`，对 `luci-lib-docker` 和 `luci-app-dockerman` 都生效。
+
 ---
 
 ## 8. 后续建议
