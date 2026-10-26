@@ -154,13 +154,20 @@ update_ath11k_fw() {
         fi
         cp -f "$new_mk" "$makefile"
 
-        if [ -f "$ipq60_target" ]; then
-            sed -i 's/ath11k-firmware-ipq6018\([^-[:alnum:]_]\|$\)/ath11k-firmware-ipq6018-ddwrt\1/g' "$ipq60_target"
-        fi
+        local ipq50_target="$BUILD_DIR/target/linux/qualcommax/ipq50xx/target.mk"
+        local target_mk
+        for target_mk in "$ipq50_target" "$ipq60_target" "$ipq807_target"; do
+            [ -f "$target_mk" ] || continue
+            sed -i 's/ath11k-firmware-ipq5018\([^-[:alnum:]_]\|$\)/ath11k-firmware-ipq5018-ddwrt\1/g' "$target_mk"
+            sed -i 's/ath11k-firmware-ipq6018\([^-[:alnum:]_]\|$\)/ath11k-firmware-ipq6018-ddwrt\1/g' "$target_mk"
+            sed -i 's/ath11k-firmware-ipq8074\([^-[:alnum:]_]\|$\)/ath11k-firmware-ipq8074-ddwrt\1/g' "$target_mk"
+            sed -i 's/ath11k-firmware-qcn9074\([^-[:alnum:]_]\|$\)/ath11k-firmware-qcn9074-ddwrt\1/g' "$target_mk"
 
-        if [ -f "$ipq807_target" ]; then
-            sed -i 's/ath11k-firmware-ipq8074\([^-[:alnum:]_]\|$\)/ath11k-firmware-ipq8074-ddwrt\1/g' "$ipq807_target"
-        fi
+            if grep -qE 'ath11k-firmware-(ipq5018|ipq6018|ipq8074|qcn9074)([^-[:alnum:]_]|$)' "$target_mk"; then
+                echo "错误：$target_mk 中仍存在未转换为 -ddwrt 的 ath11k 固件包名" >&2
+                return 1
+            fi
+        done
 
         # 设备定义（image/*.mk）也会直接写死默认固件包名；只改 target.mk
         # 会留下 ath11k-firmware-qcn9074 之类的旧名，apk 在 target install 阶段会报 no such package。
@@ -172,10 +179,15 @@ update_ath11k_fw() {
             sed -i 's/ath11k-firmware-ipq6018\([^-[:alnum:]_]\|$\)/ath11k-firmware-ipq6018-ddwrt\1/g' "$image_mk"
             sed -i 's/ath11k-firmware-ipq8074\([^-[:alnum:]_]\|$\)/ath11k-firmware-ipq8074-ddwrt\1/g' "$image_mk"
             sed -i 's/ath11k-firmware-qcn9074\([^-[:alnum:]_]\|$\)/ath11k-firmware-qcn9074-ddwrt\1/g' "$image_mk"
+
+            if grep -qE 'ath11k-firmware-(ipq5018|ipq6018|ipq8074|qcn9074)([^-[:alnum:]_]|$)' "$image_mk"; then
+                echo "错误：$image_mk 中仍存在未转换为 -ddwrt 的 ath11k 固件包名" >&2
+                return 1
+            fi
         done
 
-        if [ -f "$ipq60_target" ] || [ -f "$ipq807_target" ]; then
-            echo "已同步 ipq60xx/ipq807x ath11k 固件依赖为 ddwrt 包名。"
+        if [ -f "$ipq50_target" ] || [ -f "$ipq60_target" ] || [ -f "$ipq807_target" ]; then
+            echo "已同步 ipq50xx/ipq60xx/ipq807x ath11k 固件依赖为 ddwrt 包名。"
         fi
     fi
 }
