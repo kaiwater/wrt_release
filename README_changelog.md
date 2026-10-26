@@ -229,10 +229,33 @@ ADD_CONFIG_FRAGMENTS=nss_fw_11_4 ./build.sh jdcloud_ipq60xx_libwrt
 - `wrt_core/deconfig/n1_immwrt.config`
 - `wrt_core/modules/custom_feed.sh`
 - `wrt_core/modules/target_fixes.sh`
+- `wrt_core/update.sh`
 
 ---
 
-## 7. 后续建议
+## 7. 首次线上测试与修复
+
+首次线上 `libwrt_all`（Run 40248454333）三个 job 都在 `xray-core` 处失败，错误一致：
+
+```text
+go: ../../go.mod requires go >= 1.27 (running go 1.26.10; GOTOOLCHAIN=local)
+ERROR: package/feeds/custom_feed/xray-core failed to build.
+```
+
+原因：small-package 中的 `xray-core` 已更新到 `26.10.21`，其 `go.mod` 要求 Go >= 1.27，而仓库固定的 `packages_lang_golang` 分支是 `26.x`（Go 1.26.10）。
+
+修复：`wrt_core/update.sh` 中：
+
+```diff
+-GOLANG_BRANCH="26.x"
++GOLANG_BRANCH="27.x"
+```
+
+`27.x` 分支当前是 Go 1.27.3，可满足 xray-core 的要求；sing-box 等已用 Go 1.26 成功编译的包也应保持兼容。
+
+---
+
+## 8. 后续建议
 
 1. 先跑一次单独的 `xiaomi_ax3600_libwrt` 或 `aliyun_ap8220_libwrt`，确认 LibWrt + 12.5 + apk 的 ipq807x 链路正常。
 2. 再跑 `jdcloud_ipq60xx_libwrt`，重点验证 CS-02 的 QCN9074、athena-led、emmc-health 和 quickfile。
