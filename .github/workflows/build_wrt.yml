@@ -160,15 +160,20 @@ jobs:
         run: ./build.sh ${{ matrix.model }}
 
       - name: Delete Old Cache
+        continue-on-error: true
         run: |
-          # 获取缓存列表并删除
-          gh cache list --key ${{ matrix.os }}-${{ matrix.model }}-${{ hashFiles('**/repo_flag') }}- --json key --jq '.[] | .key' | while read -r key; do
+          # 构建结束后 workspace 很大，hashFiles() 会扫描整个 action_build 并超时。
+          # 直接用 repo_flag 的 SHA-256，与 hashFiles('**/repo_flag') 的结果一致。
+          REPO_FLAG_HASH=""
+          if [ -f repo_flag ]; then
+            REPO_FLAG_HASH=$(sha256sum repo_flag | cut -d' ' -f1)
+          fi
+          gh cache list --key "${{ matrix.os }}-${{ matrix.model }}-${REPO_FLAG_HASH}-" --json key --jq '.[] | .key' | while read -r key; do
             gh cache delete "$key"
           done
-          # 输出缓存状态
           echo "========cache status========"
-          echo "ccache: $(du -sh ./action_build/.ccache | cut -f 1)"
-          echo "staging: $(du -sh ./action_build/staging_dir | cut -f 1)"
+          echo "ccache: $(du -sh ./action_build/.ccache 2>/dev/null | cut -f 1)"
+          echo "staging: $(du -sh ./action_build/staging_dir 2>/dev/null | cut -f 1)"
 
       - name: Machine Information (Post-build)
         run: |
