@@ -151,8 +151,36 @@ https://github.com/kenzok8/small-package.git
 
 ## 9. OAF（应用过滤）功能使用说明
 
-使用 OAF（应用过滤）功能前，需先完成以下操作：
+OAF 的 `appfilter` 服务、`kmod-oaf` 内核模块和 LuCI 页面默认都已安装，且 `appfilter` 随系统启动。默认配置中应用过滤、MAC 过滤、记录开关均为关闭，但服务本身会运行并加载 `kmod-oaf`，所以正常情况下：
 
-1. 打开系统设置 → 启动项 → 定位到「appfilter」
-2. 将「appfilter」当前状态从已禁用更改为已启用
-3. 完成配置后，点击启动按钮激活服务
+```sh
+lsmod | grep oaf
+```
+
+应能看到 `oaf` 模块。
+
+如果需要启用过滤功能：
+
+1. 打开 LuCI → 服务 → OAF → 高级设置
+2. 按需勾选「应用过滤」「MAC 过滤」或「记录」，点击保存
+3. 如 OAF 与 NSS 硬件加速冲突，可在同一页面勾选「禁用 HNAT」
+
+也可以直接用 SSH 启用应用过滤：
+
+```sh
+uci set fwx.appfilter.enable='1'
+uci commit fwx
+/etc/init.d/appfilter restart
+lsmod | grep oaf
+```
+
+如果 `lsmod` 仍为空，依次检查：
+
+```sh
+/etc/init.d/appfilter status
+logread | grep -i appfilter
+modprobe oaf; echo "modprobe exit=$?"
+dmesg | tail -30
+```
+
+`modprobe` 返回非 0 时，把 `dmesg` 中的 `oaf` / `Unknown symbol` 信息发出来，才能判断是模块依赖还是内核配置问题。

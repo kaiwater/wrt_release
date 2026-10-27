@@ -243,14 +243,11 @@ update_oaf_deconfig() {
             -e "/config record 'record'/,/config network network/ s/option enable '1'/option enable '0'/" \
             "$init_path"
 
-        sed -i \
-            -e '/^[[:space:]]*ensure_default_configs$/a\
-\tif [ "$(uci -q get fwx.appfilter.enable)" != "1" ] && [ "$(uci -q get fwx.macfilter.enable)" != "1" ] && [ "$(uci -q get fwx.record.enable)" != "1" ]; then' \
-            -e '/^[[:space:]]*ensure_default_configs$/a\
-\t\treturn 0' \
-            -e '/^[[:space:]]*ensure_default_configs$/a\
-\tfi' \
-            "$init_path"
+        # 不插入“三个开关都为 0 就 return”的提前退出逻辑。
+        # oafd 是 OAF LuCI 的 ubus 后端，如果服务不启动，用户在
+        # “高级设置”里就无法打开 appfilter，形成鸡生蛋问题。
+        # 这里保留 enable=0（默认不主动过滤），但让 appfilter 服务
+        # 正常启动、加载 kmod-oaf，并提供 ubus API 供 LuCI 使用。
     fi
 }
 
