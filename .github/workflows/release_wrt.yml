@@ -116,10 +116,10 @@ jobs:
           path: |
             ./action_build/.ccache
             ./action_build/staging_dir
-          key: ${{ matrix.os }}-${{ matrix.model }}-${{ hashFiles('**/repo_flag') }}-${{ env.ADD_CONFIG_FRAGMENTS_KEY }}-${{ env.REMOVE_CONFIG_FRAGMENTS_KEY }}-${{ env.BUILD_DATE }}
+          key: ${{ matrix.os }}-${{ matrix.model }}-${{ hashFiles('repo_flag') }}-${{ env.ADD_CONFIG_FRAGMENTS_KEY }}-${{ env.REMOVE_CONFIG_FRAGMENTS_KEY }}-${{ env.BUILD_DATE }}
           restore-keys: |
-            ${{ matrix.os }}-${{ matrix.model }}-${{ hashFiles('**/repo_flag') }}-${{ env.ADD_CONFIG_FRAGMENTS_KEY }}-${{ env.REMOVE_CONFIG_FRAGMENTS_KEY }}-
-            ${{ matrix.os }}-${{ matrix.model }}-${{ hashFiles('**/repo_flag') }}-
+            ${{ matrix.os }}-${{ matrix.model }}-${{ hashFiles('repo_flag') }}-${{ env.ADD_CONFIG_FRAGMENTS_KEY }}-${{ env.REMOVE_CONFIG_FRAGMENTS_KEY }}-
+            ${{ matrix.os }}-${{ matrix.model }}-${{ hashFiles('repo_flag') }}-
 
       - name: Refresh the cache
         run: |
@@ -171,7 +171,7 @@ jobs:
         continue-on-error: true
         run: |
           # 构建结束后 workspace 很大，hashFiles() 会扫描整个 action_build 并超时。
-          # 直接用 repo_flag 的 SHA-256，与 hashFiles('**/repo_flag') 的结果一致。
+          # 直接用 repo_flag 的 SHA-256，与 hashFiles('repo_flag') 的结果一致。
           REPO_FLAG_HASH=""
           if [ -f repo_flag ]; then
             REPO_FLAG_HASH=$(sha256sum repo_flag | cut -d' ' -f1)
