@@ -107,16 +107,25 @@ jobs:
       - name: Pre Clone
         run: ./wrt_core/pre_clone_action.sh ${{ matrix.model }}
 
+      - name: Compute Cache Key
+        run: |
+          if [ -f repo_flag ]; then
+            REPO_FLAG_HASH=$(sha256sum repo_flag | cut -d' ' -f1)
+          else
+            REPO_FLAG_HASH="no-repo-flag"
+          fi
+          echo "REPO_FLAG_HASH=$REPO_FLAG_HASH" >> "$GITHUB_ENV"
+
       - name: Cache Dependencies
         uses: actions/cache@v6.1.0
         with:
           path: |
             ./action_build/.ccache
             ./action_build/staging_dir
-          key: ${{ matrix.os }}-${{ matrix.model }}-${{ hashFiles('repo_flag') }}-${{ env.ADD_CONFIG_FRAGMENTS_KEY }}-${{ env.REMOVE_CONFIG_FRAGMENTS_KEY }}-${{ env.BUILD_DATE }}
+          key: ${{ matrix.os }}-${{ matrix.model }}-${{ env.REPO_FLAG_HASH }}-${{ env.ADD_CONFIG_FRAGMENTS_KEY }}-${{ env.REMOVE_CONFIG_FRAGMENTS_KEY }}-${{ env.BUILD_DATE }}
           restore-keys: |
-            ${{ matrix.os }}-${{ matrix.model }}-${{ hashFiles('repo_flag') }}-${{ env.ADD_CONFIG_FRAGMENTS_KEY }}-${{ env.REMOVE_CONFIG_FRAGMENTS_KEY }}-
-            ${{ matrix.os }}-${{ matrix.model }}-${{ hashFiles('repo_flag') }}-
+            ${{ matrix.os }}-${{ matrix.model }}-${{ env.REPO_FLAG_HASH }}-${{ env.ADD_CONFIG_FRAGMENTS_KEY }}-${{ env.REMOVE_CONFIG_FRAGMENTS_KEY }}-
+            ${{ matrix.os }}-${{ matrix.model }}-${{ env.REPO_FLAG_HASH }}-
 
       - name: Refresh the cache
         run: |
@@ -162,12 +171,7 @@ jobs:
       - name: Delete Old Cache
         continue-on-error: true
         run: |
-          # 构建结束后 workspace 很大，hashFiles() 会扫描整个 action_build 并超时。
-          # 直接用 repo_flag 的 SHA-256，与 hashFiles('repo_flag') 的结果一致。
-          REPO_FLAG_HASH=""
-          if [ -f repo_flag ]; then
-            REPO_FLAG_HASH=$(sha256sum repo_flag | cut -d' ' -f1)
-          fi
+          # REPO_FLAG_HASH 由 Compute Cache Key 步骤在构建前计算，避免构建后扫描 workspace。
           gh cache list --key "${{ matrix.os }}-${{ matrix.model }}-${REPO_FLAG_HASH}-" --json key --jq '.[] | .key' | while read -r key; do
             gh cache delete "$key"
           done
