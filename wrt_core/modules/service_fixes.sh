@@ -139,6 +139,25 @@ fix_opkg_check() {
 }
 
 
+fix_tailscale_overlap() {
+    local makefile="$BUILD_DIR/package/feeds/packages/tailscale/Makefile"
+
+    if [ ! -f "$makefile" ]; then
+        return 0
+    fi
+
+    if grep -q 'CONFIG_PACKAGE_luci-app-tailscale' "$makefile"; then
+        return 0
+    fi
+
+    # luci-app-tailscale 自带更完整的 /etc/config/tailscale 和 /etc/init.d/tailscale。
+    # 启用该 LuCI 应用时让 tailscale 后端跳过同名文件，避免 apk 包覆盖冲突。
+    sed -i 's#^\([[:space:]]*\)\$(INSTALL_BIN) \./files//tailscale\.init#\1[ -n "$(CONFIG_PACKAGE_luci-app-tailscale)" ] || $(INSTALL_BIN) ./files//tailscale.init#' "$makefile"
+    sed -i 's#^\([[:space:]]*\)\$(INSTALL_DATA) \./files//tailscale\.conf#\1[ -n "$(CONFIG_PACKAGE_luci-app-tailscale)" ] || $(INSTALL_DATA) ./files//tailscale.conf#' "$makefile"
+    echo "已让 tailscale 后端在启用 luci-app-tailscale 时跳过重复的 config/init。"
+}
+
+
 netfilter_kmod_clash_include_fixed() {
     local include_netfilter_mk="$1"
 

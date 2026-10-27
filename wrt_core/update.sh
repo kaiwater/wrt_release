@@ -131,6 +131,7 @@ stage_post_install_package_fixes() {
     update_geoip
     fix_openssl_ktls
     fix_opkg_check
+    fix_tailscale_overlap
     fix_netfilter_kmod_clash
     fix_quectel_cm
     install_pbr_cmcc
