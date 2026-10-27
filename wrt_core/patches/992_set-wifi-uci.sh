@@ -13,18 +13,27 @@ configure_wifi() {
 	local key=$6
 	local encryption=${7:-"psk2+ccmp"} # 新增 encryption 参数，如果为空则默认为 psk2+ccmp
 	local now_encryption=$(uci -q get wireless.default_radio${radio}.encryption)
+	local now_channel=$(uci -q get wireless.radio${radio}.channel)
+	local now_htmode=$(uci -q get wireless.radio${radio}.htmode)
+	local now_txpower=$(uci -q get wireless.radio${radio}.txpower)
+	local now_cell_density=$(uci -q get wireless.radio${radio}.cell_density)
+	local now_mu_beamformer=$(uci -q get wireless.radio${radio}.mu_beamformer)
 
-	# 射频级参数始终写入，避免从其他固件迁移后因为接口已有加密而跳过，
-	# 导致某个频段继续使用旧国家码/auto 信道。
+	# 国家码和启用状态始终写入，保证从其他固件迁移后地区不丢。
 	uci -q batch <<EOF
-set wireless.radio${radio}.channel="${channel}"
-set wireless.radio${radio}.htmode="${htmode}"
-set wireless.radio${radio}.mu_beamformer='1'
 set wireless.radio${radio}.country="${WIFI_COUNTRY}"
-set wireless.radio${radio}.txpower="${txpower}"
-set wireless.radio${radio}.cell_density='0'
 set wireless.radio${radio}.disabled='0'
 EOF
+
+	# 其余射频参数只在未配置时写默认值，保留升级前的用户设置
+	# （覆盖密度、发射功率、固定信道等）。
+	if [ -z "$now_channel" ] || [ "$now_channel" = "auto" ]; then
+		uci -q set wireless.radio${radio}.channel="${channel}"
+	fi
+	[ -n "$now_htmode" ] || uci -q set wireless.radio${radio}.htmode="${htmode}"
+	[ -n "$now_txpower" ] || uci -q set wireless.radio${radio}.txpower="${txpower}"
+	[ -n "$now_cell_density" ] || uci -q set wireless.radio${radio}.cell_density='0'
+	[ -n "$now_mu_beamformer" ] || uci -q set wireless.radio${radio}.mu_beamformer='1'
 
 	# 接口级 SSID/加密只在尚未配置时写入，保留用户已有设置。
 	if [ -z "$now_encryption" ] || [ "$now_encryption" = "none" ]; then
@@ -52,23 +61,31 @@ configure_wifi7() {
 	local encryption=${7:-"psk2"} # 新增 encryption 参数，如果为空则默认为 psk2
 	local now_encryption=$(uci -q get wireless.default_radio${radio}.encryption)
 	local bandmode=$(uci -q get wireless.radio${radio}.band)
+	local now_channel=$(uci -q get wireless.radio${radio}.channel)
+	local now_htmode=$(uci -q get wireless.radio${radio}.htmode)
+	local now_txpower=$(uci -q get wireless.radio${radio}.txpower)
+	local now_cell_density=$(uci -q get wireless.radio${radio}.cell_density)
 	local country="$WIFI_COUNTRY"
 
 	# 6G 使用 world 国家码，避免 CN 直接禁用 6G 频段。
 	[ "$bandmode" = "6g" ] && country='00'
 
-	# 射频级参数始终写入，避免接口已有加密时跳过国家码/信道。
+	# 国家码、启用状态和平台默认项始终写入。
 	uci -q batch <<EOF
-set wireless.radio${radio}.channel="${channel}"
-set wireless.radio${radio}.htmode="${htmode}"
-set wireless.radio${radio}.disabled='0'
 set wireless.radio${radio}.country="${country}"
+set wireless.radio${radio}.disabled='0'
 set wireless.radio${radio}.sku_idx='0'
 set wireless.radio${radio}.he_twt_responder='1'
-set wireless.radio${radio}.cell_density='0'
-set wireless.radio${radio}.txpower="${txpower}"
 set wireless.radio${radio}.noscan='0'
 EOF
+
+	# 用户可能改过的射频参数只在未配置时写默认值。
+	if [ -z "$now_channel" ] || [ "$now_channel" = "auto" ]; then
+		uci -q set wireless.radio${radio}.channel="${channel}"
+	fi
+	[ -n "$now_htmode" ] || uci -q set wireless.radio${radio}.htmode="${htmode}"
+	[ -n "$now_txpower" ] || uci -q set wireless.radio${radio}.txpower="${txpower}"
+	[ -n "$now_cell_density" ] || uci -q set wireless.radio${radio}.cell_density='0'
 
 	if [ -z "$now_encryption" ] || [ "$now_encryption" = "none" ]; then
 		uci -q batch <<EOF
