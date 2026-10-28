@@ -61,6 +61,8 @@ GitHub Actions 的手动构建也提供 `add_fragments` 与 `remove_fragments` �
 
 `Build WRT` / `Release WRT` 的 `model` 输入选择 `libwrt_all` 时，会并行构建三个 LiBwrt 机型：`jdcloud_ipq60xx_libwrt`（ipq60xx / RE-CS-02）、`aliyun_ap8220_libwrt`（ipq807x / 1G NSS 档位）和 `xiaomi_ax3600_libwrt`（ipq807x / 512M NSS 档位）。
 
+选择 `immwrt_all` 时，会并行构建三个 VIKINGYFY main 机型：`jdcloud_ipq60xx_immwrt`、`aliyun_ap8220_immwrt` 和 `xiaomi_ax3600_immwrt`。VIKINGYFY 与 LibWrt 的 ath11k/NSS patch 在构建脚本中按 `REPO_URL` / `BUILD_DIR` 分开处理：VIKINGYFY 使用自带的 `999-922`，不会再修改 LibWrt 的 `199-003`；只有 LibWrt 才应用 12.5 结构体 define 和 RX 过滤修正。
+
 `compile_base.config` 默认使用 apk（`CONFIG_USE_APK=y`）。immortalwrt / LiBwrt 25.12 系列上游本身以 apk 为默认；仍使用 opkg 的旧分支（如 padavanonly 21.02/24.10）会忽略该符号，保持原有 opkg 构建。
 
 编译完成后，脚本会从 `<BUILD_DIR>/bin/targets/` 收集固件文件到仓库根目录的 `firmware/`。每次完整构建前会清理旧的目标固件文件，`firmware/Packages.manifest` 会被移除。
@@ -71,7 +73,7 @@ GitHub Actions 的手动构建也提供 `add_fragments` 与 `remove_fragments` �
 
 | 厂商 / 平台 | 设备 | 配置名 |
 | --- | --- | --- |
-| 京东云 | 雅典娜(02)、亚瑟(01)、太乙(07)、AX5(JDC版) | `jdcloud_ipq60xx_immwrt` |
+| 京东云 | 雅典娜(02) - VIKINGYFY main | `jdcloud_ipq60xx_immwrt` |
 | 京东云 | 雅典娜(02) - LiBwrt | `jdcloud_ipq60xx_libwrt` |
 | 京东云 | 百里 / AX6000 | `jdcloud_ax6000_immwrt` |
 | 阿里云 | AP8220 | `aliyun_ap8220_immwrt` |
@@ -82,6 +84,7 @@ GitHub Actions 的手动构建也提供 `add_fragments` 与 `remove_fragments` �
 | 红米 | AX5 | `redmi_ax5_immwrt` |
 | 红米 | AX6 | `redmi_ax6_immwrt` |
 | 红米 | AX6 - LiBwrt | `redmi_ax6_libwrt` |
+| 小米 | AX3600 - VIKINGYFY main | `xiaomi_ax3600_immwrt` |
 | 小米 | AX3600 - LiBwrt | `xiaomi_ax3600_libwrt` |
 | 红米 | AX6000 | `redmi_ax6000_immwrt21` |
 | CMCC（中国移动） | RAX3000M | `cmcc_rax3000m_immwrt` |

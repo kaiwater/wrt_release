@@ -1,6 +1,14 @@
 #!/usr/bin/env bash
 # target、kernel 与 base system 源码修正。
 
+is_libwrt_build() {
+    [[ "$REPO_URL" == *"LiBwrt/LibWrt"* || "$BUILD_DIR" == *"libwrt"* ]]
+}
+
+is_vikingyfy_nss_build() {
+    [[ "$REPO_URL" == *"VIKINGYFY/immortalwrt"* || "$BUILD_DIR" == *"imm-nss"* ]]
+}
+
 fix_default_set() {
     # 注入默认主题、系统设置和目标平台通用补丁。
     if [ -d "$BUILD_DIR/feeds/luci/collections/" ]; then
@@ -221,6 +229,11 @@ fix_ath11k_nss_stats_layout() {
     local makefile="$BUILD_DIR/package/kernel/mac80211/Makefile"
     local tmp_file
 
+    if ! is_libwrt_build; then
+        echo "非 LibWrt 构建，跳过 NSS 12.5 结构体 define 修正。"
+        return 0
+    fi
+
     if [ ! -f "$makefile" ]; then
         return 0
     fi
@@ -264,6 +277,13 @@ fix_ath11k_nss_stats_layout() {
 
 fix_ath11k_nss_rxrate_filter() {
     local patch_file="$BUILD_DIR/package/kernel/mac80211/patches/nss/ath11k/199-003-ath11k-add-nss-support.patch"
+    local vk_rate_patch="$BUILD_DIR/package/kernel/mac80211/patches/nss/ath11k/999-922-ath11k-nss-fix-station-rate-reporting.patch"
+
+    # VIKINGYFY 已经自带 999-922，不能再改它的 199-003，否则两套补丁会叠加。
+    if [ -f "$vk_rate_patch" ] || ! is_libwrt_build; then
+        echo "检测到 VIKINGYFY/999-922 或非 LibWrt 构建，跳过 199-003 RX 过滤修正。"
+        return 0
+    fi
 
     if [ ! -f "$patch_file" ]; then
         return 0
@@ -298,7 +318,7 @@ fix_ath11k_nss_rxrate_filter() {
 }
 
 
-update_nss_pbuf_performance() {
+update_nss_pbuf_performance_libwrt() {
     local pbuf_path="$BUILD_DIR/package/kernel/mac80211/files/pbuf.uci"
     local pbuf_init="$BUILD_DIR/package/kernel/mac80211/files/qca-nss-pbuf.init"
 
@@ -338,6 +358,38 @@ update_nss_pbuf_performance() {
             echo "错误：无法将 $pbuf_init 的 stats_disable 默认值改为 0" >&2
             exit 1
         fi
+    fi
+}
+
+
+update_nss_pbuf_performance_vikingyfy() {
+    local pbuf_init="$BUILD_DIR/package/kernel/mac80211/files/qca-nss-pbuf.init"
+
+    if [ ! -f "$pbuf_init" ]; then
+        return 0
+    fi
+
+    # VIKINGYFY main 的 qca-nss-pbuf.init 直接硬编码 echo 1，
+    # 没有 LibWrt 的 config_get stats_disable。这里只改它自己的 init，
+    # 不改 LibWrt 的 pbuf.uci，避免两套 patch 混在一起。
+    if grep -q 'echo 1 > "$stats_file"' "$pbuf_init"; then
+        sed -i 's/echo 1 > "$stats_file"/echo 0 > "$stats_file"/' "$pbuf_init"
+        sed -i 's/"Disabling ath11k stats"/"Enabling ath11k stats"/' "$pbuf_init"
+    fi
+
+    if grep -q 'echo 0 > "$stats_file"' "$pbuf_init"; then
+        echo "VIKINGYFY: 已保持 ath11k stats 开启。"
+    else
+        echo "警告：未找到 VIKINGYFY qca-nss-pbuf.init 的 stats_disable 写入点，跳过。" >&2
+    fi
+}
+
+
+update_nss_pbuf_performance() {
+    if is_vikingyfy_nss_build; then
+        update_nss_pbuf_performance_vikingyfy
+    else
+        update_nss_pbuf_performance_libwrt
     fi
 }
 

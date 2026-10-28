@@ -29,7 +29,9 @@ on:
           - x64_immwrt
           - supergateway_s20m_immwrt
           - xiaomi_ax3600_libwrt
+          - xiaomi_ax3600_immwrt
           - libwrt_all
+          - immwrt_all
       add_fragments:
         required: false
         description: Add config fragments, comma separated
@@ -52,6 +54,8 @@ jobs:
         run: |
           if [ "${{ inputs.model }}" = "libwrt_all" ]; then
             echo 'models=["jdcloud_ipq60xx_libwrt","aliyun_ap8220_libwrt","xiaomi_ax3600_libwrt"]' >> "$GITHUB_OUTPUT"
+          elif [ "${{ inputs.model }}" = "immwrt_all" ]; then
+            echo 'models=["jdcloud_ipq60xx_immwrt","aliyun_ap8220_immwrt","xiaomi_ax3600_immwrt"]' >> "$GITHUB_OUTPUT"
           else
             echo 'models=["${{ inputs.model }}"]' >> "$GITHUB_OUTPUT"
           fi
