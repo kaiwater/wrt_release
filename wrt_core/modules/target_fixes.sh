@@ -225,6 +225,49 @@ change_cpuusage() {
 }
 
 
+ensure_vikingyfy_libffi() {
+    local libffi_dir="$BUILD_DIR/package/libs/libffi"
+    local tmp_dir
+    local source_dir
+
+    if ! is_vikingyfy_nss_build; then
+        return 0
+    fi
+
+    if [ -f "$libffi_dir/Makefile" ]; then
+        return 0
+    fi
+
+    echo "VIKINGYFY 源码缺少 package/libs/libffi，正在从 immortalwrt 官方补入..."
+    tmp_dir=$(mktemp -d)
+    source_dir="$tmp_dir/immortalwrt"
+
+    if ! git_retry clone --depth 1 --filter=blob:none --sparse \
+        -b master https://github.com/immortalwrt/immortalwrt.git "$source_dir"; then
+        rm -rf "$tmp_dir"
+        echo "错误：无法获取 immortalwrt 的 libffi 包" >&2
+        exit 1
+    fi
+
+    if ! (cd "$source_dir" && git_retry sparse-checkout set package/libs/libffi); then
+        rm -rf "$tmp_dir"
+        echo "错误：无法 sparse-checkout immortalwrt/package/libs/libffi" >&2
+        exit 1
+    fi
+
+    mkdir -p "$libffi_dir"
+    cp -a "$source_dir/package/libs/libffi/." "$libffi_dir/"
+    rm -rf "$tmp_dir"
+
+    if [ ! -f "$libffi_dir/Makefile" ]; then
+        echo "错误：libffi 补入后仍未找到 $libffi_dir/Makefile" >&2
+        exit 1
+    fi
+
+    echo "已补入 libffi，用于 Python3/ctypes 等包编译。"
+}
+
+
 fix_ath11k_nss_stats_layout() {
     local makefile="$BUILD_DIR/package/kernel/mac80211/Makefile"
     local tmp_file

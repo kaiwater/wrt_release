@@ -75,6 +75,7 @@ stage_pre_install_source_fixes() {
     fix_default_set
     fix_miniupnpd
     update_golang
+    ensure_vikingyfy_libffi
     change_dnsmasq2full
     fix_mk_def_depends
 
