@@ -202,6 +202,8 @@ NSS 12.5 的 `nss_wifili` peer stats 结构体比旧版多 16 字节。构建脚
 
 同时 `qca-nss-pbuf` 的 `stats_disable` 默认改为 `0`，避免它启动/重启时关闭 ath11k 统计。
 
+另外，LibWrt 原补丁在 `frame_control` 无效时会丢弃所有 RX rate 更新，导致 TX 速率恢复后 RX 仍为 0。构建脚本已参考 VIKINGYFY 的 `999-922-ath11k-nss-fix-station-rate-reporting.patch`，改为只在 firmware 明确提供有效 `frame_control` 时才过滤非数据帧。
+
 如果更看重极限 Wi-Fi 吞吐，可以手动关闭统计：
 
 ```sh

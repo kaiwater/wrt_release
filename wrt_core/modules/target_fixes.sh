@@ -262,6 +262,42 @@ fix_ath11k_nss_stats_layout() {
 }
 
 
+fix_ath11k_nss_rxrate_filter() {
+    local patch_file="$BUILD_DIR/package/kernel/mac80211/patches/nss/ath11k/199-003-ath11k-add-nss-support.patch"
+
+    if [ ! -f "$patch_file" ]; then
+        return 0
+    fi
+
+    # LibWrt 的 199-003 会无条件用 ppdu_info->frame_control 过滤 RX rate。
+    # 6.12/6.18 的 monitor status 路径有时不填 frame_control（fc_valid=0），
+    # 结果所有 RX rate 都被当成非数据帧丢弃，webui 的 RX 速率一直是 0。
+    # 只在固件明确提供有效 frame_control 时才过滤。
+    if grep -q 'frame_control_info_valid' "$patch_file"; then
+        echo "ath11k NSS RX rate frame-control filter 已修复。"
+        return 0
+    fi
+
+    awk '
+    /^\+[[:space:]]*if \(!ieee80211_is_data\(__cpu_to_le16\(ppdu_info->frame_control\)\)\)$/ {
+        print "+\tif ((user_stats ? user_stats->frame_control_info_valid : ppdu_info->fc_valid) && !ieee80211_is_data(__cpu_to_le16(user_stats ? user_stats->frame_control : ppdu_info->frame_control)))"
+        getline
+        print "+\t\treturn;"
+        next
+    }
+    { print }
+    ' "$patch_file" > "${patch_file}.tmp"
+    mv "${patch_file}.tmp" "$patch_file"
+
+    if ! grep -q 'frame_control_info_valid' "$patch_file"; then
+        echo "错误：无法修复 $patch_file 中的 RX rate frame-control 过滤" >&2
+        exit 1
+    fi
+
+    echo "已修复 ath11k NSS RX rate 在 frame_control 无效时被丢弃的问题。"
+}
+
+
 update_nss_pbuf_performance() {
     local pbuf_path="$BUILD_DIR/package/kernel/mac80211/files/pbuf.uci"
     local pbuf_init="$BUILD_DIR/package/kernel/mac80211/files/qca-nss-pbuf.init"
