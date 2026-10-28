@@ -82,6 +82,7 @@ stage_pre_install_source_fixes() {
     remove_something_nss_kmod
     update_affinity_script
     update_ath11k_fw
+    fix_ath11k_nss_stats_layout
     # fix_mkpkg_format_invalid
     change_cpuusage
     update_tcping

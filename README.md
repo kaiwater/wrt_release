@@ -184,3 +184,36 @@ dmesg | tail -30
 ```
 
 `modprobe` 返回非 0 时，把 `dmesg` 中的 `oaf` / `Unknown symbol` 信息发出来，才能判断是模块依赖还是内核配置问题。
+
+## 10. NSS 12.5 的 station dump 速率
+
+NSS 12.5 的 `nss_wifili` peer stats 结构体比旧版多 16 字节。构建脚本会给 ath11k 增加：
+
+```make
+-DNSS_FIRMWARE_VERSION_12_5
+```
+
+使其与 qca-nss-drv、ECM 使用相同的结构体布局。否则运行一段时间、客户端数量变化后，`iw dev ... station dump` 可能丢失：
+
+- `rx bitrate`
+- `tx bitrate`
+- `expected throughput`
+- 部分 RX/TX 计数和信号值
+
+同时 `qca-nss-pbuf` 的 `stats_disable` 默认改为 `0`，避免它启动/重启时关闭 ath11k 统计。
+
+如果更看重极限 Wi-Fi 吞吐，可以手动关闭统计：
+
+```sh
+uci set pbuf.opt.stats_disable='1'
+uci commit pbuf
+/etc/init.d/qca-nss-pbuf restart
+```
+
+检查当前状态：
+
+```sh
+iw dev phy0-ap0 station dump
+cat /sys/kernel/debug/ath11k/*/nss_stats 2>/dev/null
+cat /sys/kernel/debug/ath11k/*/stats_disable 2>/dev/null
+```

@@ -217,11 +217,91 @@ change_cpuusage() {
 }
 
 
+fix_ath11k_nss_stats_layout() {
+    local makefile="$BUILD_DIR/package/kernel/mac80211/Makefile"
+    local tmp_file
+
+    if [ ! -f "$makefile" ]; then
+        return 0
+    fi
+
+    # qca-nss-drv / ECM 在 12.5 固件下使用 -DNSS_FIRMWARE_VERSION_12_5，
+    # 该宏会让 nss_wifili 的 peer stats 结构体多出 16 字节。ath11k 如果
+    # 没有同样的宏，会按旧结构体解析，多个 peer 的统计会错位，表现为
+    # iw station dump 的速率、信号、RX/TX 计数在运行一段时间后丢失。
+    if grep -q -- '-DNSS_FIRMWARE_VERSION_12_5' "$makefile"; then
+        echo "ath11k 已包含 NSS_FIRMWARE_VERSION_12_5 定义。"
+        return 0
+    fi
+
+    if ! grep -q '^C_DEFINES[[:space:]]*=' "$makefile"; then
+        echo "错误：$makefile 中未找到 C_DEFINES，无法添加 NSS 12.5 定义" >&2
+        exit 1
+    fi
+
+    tmp_file="${makefile}.tmp"
+    awk '
+        /^C_DEFINES[[:space:]]*=/ {
+            print
+            print "ifeq ($(CONFIG_NSS_FIRMWARE_VERSION_12_5),y)"
+            print "\tC_DEFINES+=-DNSS_FIRMWARE_VERSION_12_5"
+            print "endif"
+            next
+        }
+        { print }
+    ' "$makefile" > "$tmp_file"
+
+    if ! grep -q -- '-DNSS_FIRMWARE_VERSION_12_5' "$tmp_file"; then
+        rm -f "$tmp_file"
+        echo "错误：无法在 $makefile 中写入 NSS_FIRMWARE_VERSION_12_5 定义" >&2
+        exit 1
+    fi
+
+    mv "$tmp_file" "$makefile"
+    echo "已为 ath11k 添加 NSS_FIRMWARE_VERSION_12_5，修复 12.5 peer stats 结构体偏移。"
+}
+
+
 update_nss_pbuf_performance() {
     local pbuf_path="$BUILD_DIR/package/kernel/mac80211/files/pbuf.uci"
+    local pbuf_init="$BUILD_DIR/package/kernel/mac80211/files/qca-nss-pbuf.init"
+
     if [ -d "$(dirname "$pbuf_path")" ] && [ -f $pbuf_path ]; then
         sed -i "s/auto_scale '1'/auto_scale 'off'/g" $pbuf_path
         sed -i "s/scaling_governor 'performance'/scaling_governor 'schedutil'/g" $pbuf_path
+
+        # qca-nss-pbuf 默认 stats_disable=1，会在启动/重启时关闭 ath11k
+        # 的数据包统计，station dump 的速率和信号会变成 0 或消失。
+        # 保持统计开启；需要极限吞吐时可以再手动改回 1。
+        if grep -q 'option stats_disable' "$pbuf_path"; then
+            sed -i "s/^\([[:space:]]*option stats_disable\).*/\1 '0'/" "$pbuf_path"
+        else
+            awk -v stats_opt="  option stats_disable '0'" '
+                /^config general/ {
+                    print
+                    print stats_opt
+                    next
+                }
+                { print }
+            ' "$pbuf_path" > "${pbuf_path}.tmp"
+            mv "${pbuf_path}.tmp" "$pbuf_path"
+        fi
+
+        if ! grep -q "option stats_disable '0'" "$pbuf_path"; then
+            echo "错误：无法在 $pbuf_path 中设置 stats_disable=0" >&2
+            exit 1
+        fi
+    fi
+
+    # 升级时 /etc/config/pbuf 可能保留旧配置，里面未必有 stats_disable。
+    # 同时把 init 的默认值改为 0，保证老配置升级后也默认保留 ath11k 统计。
+    if [ -f "$pbuf_init" ]; then
+        sed -i 's/config_get stats_disable opt stats_disable 1/config_get stats_disable opt stats_disable 0/' "$pbuf_init"
+
+        if ! grep -q 'config_get stats_disable opt stats_disable 0' "$pbuf_init"; then
+            echo "错误：无法将 $pbuf_init 的 stats_disable 默认值改为 0" >&2
+            exit 1
+        fi
     fi
 }
 
