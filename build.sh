@@ -18,6 +18,7 @@ REPO_ROOT=$(cd "$BASE_PATH/.." && pwd)
 
 Dev=$1
 Build_Mod=$2
+export BUILD_MODEL="$Dev"
 
 SUPPORTED_DEVS=()
 
@@ -368,6 +369,7 @@ run_container_build() {
         -w /build \
         -e ADD_CONFIG_FRAGMENTS \
         -e REMOVE_CONFIG_FRAGMENTS \
+        -e BUILD_MODEL \
         --shm-size=8g \
         --ipc=shareable \
         --ulimit nofile=65535:65535 \

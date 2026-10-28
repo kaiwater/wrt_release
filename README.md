@@ -20,7 +20,7 @@ sudo bash -c 'bash <(curl -sL https://build-scripts.immortalwrt.org/init_build_e
 ## 3. 获取源码
 
 ```bash
-git clone https://github.com/ZqinKing/wrt_release.git
+git clone https://github.com/kaiwater/wrt_release.git
 cd wrt_release
 ```
 
@@ -66,6 +66,17 @@ GitHub Actions 的手动构建也提供 `add_fragments` 与 `remove_fragments` �
 `compile_base.config` 默认使用 apk（`CONFIG_USE_APK=y`）。immortalwrt / LiBwrt 25.12 系列上游本身以 apk 为默认；仍使用 opkg 的旧分支（如 padavanonly 21.02/24.10）会忽略该符号，保持原有 opkg 构建。
 
 编译完成后，脚本会从 `<BUILD_DIR>/bin/targets/` 收集固件文件到仓库根目录的 `firmware/`。每次完整构建前会清理旧的目标固件文件，`firmware/Packages.manifest` 会被移除。
+
+默认管理地址为 `192.168.50.1/24`（也写作 `192.168.50.1/255.255.255.0`，简写为 `50.1/24` 时指同一网段）。默认 WiFi 密码为 `kaiwater/wrt_release`。
+
+每次构建会写入 `/etc/wrt_release`，包含 `RELEASE_ID`、`BUILD_DATE`、`BUILD_MODEL`、`SOURCE_REPO`、`SOURCE_BRANCH`、`SOURCE_REV`、`BUILD_RUN` 等字段；首次启动后会把这些字段追加到 `/etc/openwrt_release`，因此可以直接用：
+
+```sh
+cat /etc/wrt_release
+ubus call system board
+```
+
+确认设备运行的是哪一次构建。GitHub Release 的 tag 使用同一个 `RELEASE_ID`。
 
 ## 5. 支持设备
 

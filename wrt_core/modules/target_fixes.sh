@@ -9,6 +9,69 @@ is_vikingyfy_nss_build() {
     [[ "$REPO_URL" == *"VIKINGYFY/immortalwrt"* || "$BUILD_DIR" == *"imm-nss"* ]]
 }
 
+write_release_identity() {
+    local etc_dir="$BUILD_DIR/package/base-files/files/etc"
+    local build_date="${BUILD_DATE:-$(TZ=Asia/Shanghai date +%y.%m.%d_%H.%M.%S)}"
+    local build_model="${BUILD_MODEL:-unknown}"
+    local build_id="${BUILD_ID:-${build_date}_${build_model}}"
+    local source_rev="${SOURCE_REV:-$(git -C "$BUILD_DIR" rev-parse --short=12 HEAD 2>/dev/null || echo unknown)}"
+    local source_url="${REPO_URL:-unknown}"
+    local source_branch="${REPO_BRANCH:-unknown}"
+    local run_id="${GITHUB_RUN_ID:-local}"
+    local lan_addr="${LAN_ADDR:-192.168.50.1}"
+    local lan_cidr="${lan_addr}/24"
+    local wifi_password="${WIFI_PASSWORD:-kaiwater/wrt_release}"
+
+    if [ ! -d "$etc_dir" ]; then
+        echo "警告：未找到 base-files/etc，跳过 release identity 写入。" >&2
+        return 0
+    fi
+
+    mkdir -p "$etc_dir/uci-defaults"
+    cat > "$etc_dir/wrt_release" <<EOF
+RELEASE_ID='$build_id'
+BUILD_DATE='$build_date'
+BUILD_MODEL='$build_model'
+SOURCE_REPO='$source_url'
+SOURCE_BRANCH='$source_branch'
+SOURCE_REV='$source_rev'
+BUILD_RUN='$run_id'
+LAN_ADDR='$lan_addr'
+LAN_CIDR='$lan_cidr'
+WIFI_PASSWORD='$wifi_password'
+EOF
+    chmod 0644 "$etc_dir/wrt_release"
+
+    # runtime 追加到 /etc/openwrt_release，让 `ubus call system board`
+    # 也能直接看到构建标识。
+    cat > "$etc_dir/uci-defaults/98-wrt-release" <<'EOF'
+#!/bin/sh
+
+[ -f /etc/wrt_release ] || exit 0
+. /etc/wrt_release
+
+[ -f /etc/openwrt_release ] || : > /etc/openwrt_release
+
+add_field() {
+    key="$1"
+    value="$2"
+    sed -i "/^${key}=/d" /etc/openwrt_release
+    printf "%s='%s'\n" "$key" "$value" >> /etc/openwrt_release
+}
+
+add_field DISTRIB_BUILD_ID "$RELEASE_ID"
+add_field DISTRIB_BUILD_DATE "$BUILD_DATE"
+add_field DISTRIB_BUILD_MODEL "$BUILD_MODEL"
+add_field DISTRIB_SOURCE_REV "$SOURCE_REV"
+add_field DISTRIB_BUILD_RUN "$BUILD_RUN"
+
+exit 0
+EOF
+    chmod 0755 "$etc_dir/uci-defaults/98-wrt-release"
+
+    echo "构建标识：${build_id}（source ${source_rev}）"
+}
+
 fix_default_set() {
     # 注入默认主题、系统设置和目标平台通用补丁。
     if [ -d "$BUILD_DIR/feeds/luci/collections/" ]; then
@@ -21,6 +84,7 @@ fix_default_set() {
     install -Dm544 "$BASE_PATH/patches/991_custom_settings" "$BUILD_DIR/package/base-files/files/etc/uci-defaults/991_custom_settings"
     install -Dm544 "$BASE_PATH/patches/992_set-wifi-uci.sh" "$wifi_uci_script"
     sed -i "s/__WIFI_COUNTRY__/${WIFI_COUNTRY:-CN}/g" "$wifi_uci_script"
+    sed -i "s|__WIFI_PASSWORD__|${WIFI_PASSWORD:-kaiwater/wrt_release}|g" "$wifi_uci_script"
 
     if [ -f "$BUILD_DIR/package/emortal/autocore/files/tempinfo" ]; then
         if [ -f "$BASE_PATH/patches/tempinfo" ]; then

@@ -24,8 +24,14 @@ FEEDS_CONF="feeds.conf.default"
 GOLANG_REPO="https://github.com/sbwml/packages_lang_golang"
 GOLANG_BRANCH="27.x"
 THEME_SET="argon"
-LAN_ADDR="192.168.1.1"
-WIFI_COUNTRY="CN"
+
+# build.sh 会导出 BUILD_MODEL；本地直接调用 update.sh 时使用 unknown。
+BUILD_MODEL="${BUILD_MODEL:-unknown}"
+BUILD_DATE="${BUILD_DATE:-$(TZ=Asia/Shanghai date +%y.%m.%d_%H.%M.%S)}"
+BUILD_ID="${BUILD_ID:-${BUILD_DATE}_${BUILD_MODEL}}"
+LAN_ADDR="${LAN_ADDR:-192.168.50.1}"
+WIFI_COUNTRY="${WIFI_COUNTRY:-CN}"
+WIFI_PASSWORD="${WIFI_PASSWORD:-kaiwater/wrt_release}"
 
 SCRIPT_DIR=$(cd $(dirname $0) && pwd)
 BASE_PATH=${BASE_PATH:-$SCRIPT_DIR}
@@ -80,6 +86,7 @@ stage_pre_install_source_fixes() {
     fix_mk_def_depends
 
     update_default_lan_addr
+    write_release_identity
     remove_something_nss_kmod
     update_affinity_script
     update_ath11k_fw

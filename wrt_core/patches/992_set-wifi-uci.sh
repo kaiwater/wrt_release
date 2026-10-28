@@ -1,6 +1,7 @@
 #!/bin/sh
 
 WIFI_COUNTRY="__WIFI_COUNTRY__"
+WIFI_PASSWORD="__WIFI_PASSWORD__"
 
 board_name=$(cat /tmp/sysinfo/board_name)
 
@@ -117,19 +118,19 @@ EOF
 }
 
 jdc_ax1800_pro_wifi_cfg() {
-	configure_wifi 0 149 HE80 20 'JDC_AX1800PRO_5G' '12345678'
-	configure_wifi 1 1 HE20 20 'JDC_AX1800PRO' '12345678'
+	configure_wifi 0 149 HE80 20 'JDC_AX1800PRO_5G' "$WIFI_PASSWORD"
+	configure_wifi 1 1 HE20 20 'JDC_AX1800PRO' "$WIFI_PASSWORD"
 }
 
 jdc_ax6600_wifi_cfg() {
-	configure_wifi 0 149 HE80 22 'JDC_AX6600_5G1' '12345678'
-	configure_wifi 1 1 HE20 22 'JDC_AX6600' '12345678'
-	configure_wifi 2 44 HE160 23 'JDC_AX6600_5G2' '12345678'
+	configure_wifi 0 149 HE80 22 'JDC_AX6600_5G1' "$WIFI_PASSWORD"
+	configure_wifi 1 1 HE20 22 'JDC_AX6600' "$WIFI_PASSWORD"
+	configure_wifi 2 44 HE160 23 'JDC_AX6600_5G2' "$WIFI_PASSWORD"
 }
 
 redmi_ax5_wifi_cfg() {
-	configure_wifi 0 149 HE80 20 'Redmi_AX5_5G' '12345678'
-	configure_wifi 1 1 HE20 20 'Redmi_AX5' '12345678'
+	configure_wifi 0 149 HE80 20 'Redmi_AX5_5G' "$WIFI_PASSWORD"
+	configure_wifi 1 1 HE20 20 'Redmi_AX5' "$WIFI_PASSWORD"
 }
 
 find_radio_by_band() {
@@ -156,41 +157,41 @@ aliyun_ap8220_wifi_cfg() {
 	[ -n "$radio5" ] || radio5=0
 	[ -n "$radio2" ] || radio2=1
 
-	configure_wifi "$radio5" 149 HE80 26 'Aliyun_AP8220_5G' '12345678'
-	configure_wifi "$radio2" 1 HE20 23 'Aliyun_AP8220' '12345678'
+	configure_wifi "$radio5" 149 HE80 26 'Aliyun_AP8220_5G' "$WIFI_PASSWORD"
+	configure_wifi "$radio2" 1 HE20 23 'Aliyun_AP8220' "$WIFI_PASSWORD"
 }
 
 cmcc_rax3000m_wifi_cfg() {
-	configure_wifi 0 1 HE20 23 'CMCC_RAX3000M' '12345678'
-	configure_wifi 1 44 HE160 25 'CMCC_RAX3000M_5G' '12345678'
+	configure_wifi 0 1 HE20 23 'CMCC_RAX3000M' "$WIFI_PASSWORD"
+	configure_wifi 1 44 HE160 25 'CMCC_RAX3000M_5G' "$WIFI_PASSWORD"
 }
 
 redmi_ax6_wifi_cfg() {
-	configure_wifi 0 149 HE80 22 'Redmi_AX6_5G' '12345678'
-	configure_wifi 1 1 HE20 21 'Redmi_AX6' '12345678'
+	configure_wifi 0 149 HE80 22 'Redmi_AX6_5G' "$WIFI_PASSWORD"
+	configure_wifi 1 1 HE20 21 'Redmi_AX6' "$WIFI_PASSWORD"
 }
 
 qihoo_360v6_wifi_cfg() {
-	configure_wifi 0 1 HE80 20 'Qihoo_360V6' '12345678'
-	configure_wifi 1 149 HE20 20 'Qihoo_360V6_5G' '12345678'
+	configure_wifi 0 1 HE80 20 'Qihoo_360V6' "$WIFI_PASSWORD"
+	configure_wifi 1 149 HE20 20 'Qihoo_360V6_5G' "$WIFI_PASSWORD"
 }
 
 linksys_mx4x00_wifi_cfg() {
-	configure_wifi 0 1 HE20 22 'Linksys_MX4X00' '12345678'
-	configure_wifi 1 149 HE80 21 'Linksys_MX4X00_5G1' '12345678'
-	configure_wifi 2 44 HE80 21 'Linksys_MX4X00_5G2' '12345678'
+	configure_wifi 0 1 HE20 22 'Linksys_MX4X00' "$WIFI_PASSWORD"
+	configure_wifi 1 149 HE80 21 'Linksys_MX4X00_5G1' "$WIFI_PASSWORD"
+	configure_wifi 2 44 HE80 21 'Linksys_MX4X00_5G2' "$WIFI_PASSWORD"
 }
 
 gemtek_w1701k_wifi_cfg() {
-	configure_wifi7 0 1 EHT20 23 'Gemtek_W1701K' '12345678'
-	configure_wifi7 1 44 EHT160 23 'Gemtek_W1701K_5G' '12345678'
-	configure_wifi7 2 1 EHT320 23 'Gemtek_W1701K_6G' '12345678' 'sae'
+	configure_wifi7 0 1 EHT20 23 'Gemtek_W1701K' "$WIFI_PASSWORD"
+	configure_wifi7 1 44 EHT160 23 'Gemtek_W1701K_5G' "$WIFI_PASSWORD"
+	configure_wifi7 2 1 EHT320 23 'Gemtek_W1701K_6G' "$WIFI_PASSWORD" 'sae'
 	uci set wireless.radio2.disabled='1'
 }
 
 link_nn6000_wifi_cfg() {
-	configure_wifi 0 149 HE80 19 'Link_NN6000_5G' '12345678'
-	configure_wifi 1 1 HT20 19 'Link_NN6000' '12345678'
+	configure_wifi 0 149 HE80 19 'Link_NN6000_5G' "$WIFI_PASSWORD"
+	configure_wifi 1 1 HT20 19 'Link_NN6000' "$WIFI_PASSWORD"
 }
 
 case "${board_name}" in

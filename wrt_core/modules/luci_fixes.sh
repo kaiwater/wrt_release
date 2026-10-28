@@ -3,8 +3,10 @@
 
 set_build_signature() {
     local file="$BUILD_DIR/feeds/luci/modules/luci-mod-status/htdocs/luci-static/resources/view/status/include/10_system.js"
+    local build_id="${BUILD_ID:-${BUILD_DATE:-unknown}_${BUILD_MODEL:-unknown}}"
+
     if [ -d "$(dirname "$file")" ] && [ -f $file ]; then
-        sed -i "s/(\(luciversion || ''\))/(\1) + (' \/ build by ZqinKing')/g" "$file"
+        sed -i "s#(\(luciversion || ''\))#(\1) + (' / build by kaiwater/wrt_release ${build_id}')#g" "$file"
     fi
 }
 

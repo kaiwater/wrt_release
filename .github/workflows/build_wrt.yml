@@ -104,6 +104,9 @@ jobs:
           sudo -E timedatectl set-timezone "Asia/Shanghai"
           export BUILD_DATE=$(TZ=UTC-8 date +"%y.%m.%d_%H.%M.%S")
           echo "BUILD_DATE=$BUILD_DATE" >> $GITHUB_ENV
+          echo "BUILD_ID=${BUILD_DATE}_${{ matrix.model }}" >> $GITHUB_ENV
+          echo "LAN_ADDR=192.168.50.1" >> $GITHUB_ENV
+          echo "WIFI_PASSWORD=kaiwater/wrt_release" >> $GITHUB_ENV
           sanitize_cache_key_part() { printf '%s' "$1" | tr -c 'A-Za-z0-9_.-' '_'; }
           echo "ADD_CONFIG_FRAGMENTS_KEY=$(sanitize_cache_key_part "$RAW_ADD_CONFIG_FRAGMENTS")" >> $GITHUB_ENV
           echo "REMOVE_CONFIG_FRAGMENTS_KEY=$(sanitize_cache_key_part "$RAW_REMOVE_CONFIG_FRAGMENTS")" >> $GITHUB_ENV
@@ -119,6 +122,7 @@ jobs:
             REPO_FLAG_HASH="no-repo-flag"
           fi
           echo "REPO_FLAG_HASH=$REPO_FLAG_HASH" >> "$GITHUB_ENV"
+          echo "SOURCE_REV=$(git -C action_build rev-parse --short=12 HEAD 2>/dev/null || echo unknown)" >> "$GITHUB_ENV"
 
       - name: Cache Dependencies
         uses: actions/cache@v6.1.0
@@ -212,5 +216,5 @@ jobs:
       - name: Upload Firmware
         uses: actions/upload-artifact@v7.0.1
         with:
-          name: ${{ env.BUILD_DATE }}_${{ matrix.model }}
+          name: ${{ env.BUILD_ID }}
           path: ./firmware/*.*
