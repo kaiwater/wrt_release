@@ -45,11 +45,13 @@ Signed-off-by: kaiwater <kaiwater@Gmail.com>
  
  #define BSSID_WCID_TO_REMOVE 1 /* Pat:TODO */
  
-@@ -4596,6 +4597,101 @@
+@@ -4594,8 +4595,108 @@
+ #ifndef DISABLE_HOSTAPD_BEACON
+ 	RT_CFG80211_CRDA_REG_RULE_APPLY(mac_ad);
  #endif
- }
- 
-+#if IS_REACHABLE(CONFIG_PROC_FS)
++}
++
++#ifdef CONFIG_PROC_FS
 +/*
 + * Expose the per-band chip temperature as /proc/net/mt_wifi/tempN.
 + *
@@ -65,10 +67,15 @@ Signed-off-by: kaiwater <kaiwater@Gmail.com>
 + */
 +static struct proc_dir_entry *mt_wifi_temp_dir;
 +
++/* PDE_DATA() was renamed to pde_data() in Linux 6.10 */
++#ifdef PDE_DATA
++#define pde_data(inode) PDE_DATA(inode)
++#endif
++
 +static ssize_t mt_wifi_temp_read(struct file *file, char __user *ubuf,
 +				 size_t count, loff_t *ppos)
 +{
-+	struct _RTMP_ADAPTER *mac_ad = PDE_DATA(file_inode(file));
++	struct _RTMP_ADAPTER *mac_ad = pde_data(file_inode(file));
 +	UINT32 temperature = 0;
 +	char buf[16];
 +	size_t left;
@@ -102,8 +109,8 @@ Signed-off-by: kaiwater <kaiwater@Gmail.com>
 +	*ppos += left;
 +
 +	return (ssize_t)left;
-+}
-+
+ }
+ 
 +static const struct proc_ops mt_wifi_temp_proc_ops = {
 +	.proc_read = mt_wifi_temp_read,
 +};
@@ -147,7 +154,7 @@ Signed-off-by: kaiwater <kaiwater@Gmail.com>
  int cfg80211_drv_init_cmd_handle(
  	struct _RTMP_ADAPTER *mac_ad,
  	struct wifi_dev *wdev,
-@@ -4614,11 +4710,14 @@
+@@ -4614,11 +4715,14 @@
  			mac_ad->cfg80211_ctrl.wiphy = mt_cfg80211_get_wiphy(
  					mac_ad->pCfg80211_CB->pCfg80211_Wdev);
  		CFG80211_reSetToDefault(mac_ad);
