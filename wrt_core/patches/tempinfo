@@ -7,6 +7,11 @@ if grep -Eq "ipq40xx|ipq806x" "/etc/openwrt_release"; then
 	wifi_temp="$(awk '{printf("%.1f°C ", $0 / 1000)}' "$IEEE_PATH"/phy*/device/hwmon/hwmon*/temp1_input 2>"/dev/null" | awk '$1=$1')"
 else
 	wifi_temp="$(cat "$IEEE_PATH"/phy*/hwmon*/temp1_input 2>"/dev/null" | awk '{printf("%.1f°C ", $0 / 1000)}' | awk '$1=$1')"
+	# mtwifi 厂商驱动把 hwmon 挂在 PCI 设备上（每个 band 一个），
+	# 路径是 phy0/device/hwmon/hwmonN/temp1_input。
+	if [ -z "$wifi_temp" ]; then
+		wifi_temp="$(cat "$IEEE_PATH"/phy0/device/hwmon/hwmon*/temp1_input 2>"/dev/null" | awk '{printf("%.1f°C ", $0 / 1000)}' | awk '$1=$1')"
+	fi
 fi
 
 if grep -q "ipq40xx" "/etc/openwrt_release"; then

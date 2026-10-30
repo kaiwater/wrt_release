@@ -80,6 +80,7 @@ stage_pre_install_source_fixes() {
     update_homeproxy
     fix_default_set
     fix_mtwifi_security_defaults
+    fix_mtwifi_temperature
     fix_miniupnpd
     update_golang
     ensure_vikingyfy_libffi
