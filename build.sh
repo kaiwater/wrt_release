@@ -309,10 +309,16 @@ print_config_fragment_summary() {
 print_config_preview() {
     print_config_fragment_summary
     echo "Config assembly order:"
-    echo "  1) $CONFIG_FILE"
-    echo "  2) $BASE_PATH/deconfig/compile_base.config"
+    local order=1
+    if [ -n "$BASE_CONFIG" ]; then
+        echo "  $order) $BUILD_DIR/$BASE_CONFIG (upstream base${BASE_CONFIG_FILTER:+, filter: $BASE_CONFIG_FILTER})"
+        order=$((order + 1))
+    fi
+    echo "  $order) $CONFIG_FILE"
+    order=$((order + 1))
+    echo "  $order) $BASE_PATH/deconfig/compile_base.config"
+    order=$((order + 1))
 
-    local order=3
     local fragment
     for fragment in "${EFFECTIVE_CONFIG_FRAGMENTS[@]}"; do
         echo "  $order) $CONFIG_FRAGMENT_DIR/$fragment.config"
@@ -401,8 +407,28 @@ fi
 
 apply_config() {
     local fragment
+    local base_config_path
 
-    \cp -f "$CONFIG_FILE" "$BASE_PATH/../$BUILD_DIR/.config"
+    if [ -n "$BASE_CONFIG" ]; then
+        base_config_path="$BASE_PATH/../$BUILD_DIR/$BASE_CONFIG"
+        if [ ! -f "$base_config_path" ]; then
+            echo "Error: base config not found after clone: $base_config_path" >&2
+            exit 1
+        fi
+
+        if [ -n "$BASE_CONFIG_FILTER" ]; then
+            local filter_pattern
+            filter_pattern=$(printf '%s' "$BASE_CONFIG_FILTER" | tr ',' '|')
+            grep -v -E "$filter_pattern" "$base_config_path" > "$BASE_PATH/../$BUILD_DIR/.config"
+        else
+            \cp -f "$base_config_path" "$BASE_PATH/../$BUILD_DIR/.config"
+        fi
+
+        # 设备 delta 叠在上游 defconfig 之上。
+        cat "$CONFIG_FILE" >> "$BASE_PATH/../$BUILD_DIR/.config"
+    else
+        \cp -f "$CONFIG_FILE" "$BASE_PATH/../$BUILD_DIR/.config"
+    fi
 
     cat "$BASE_PATH/deconfig/compile_base.config" >> "$BASE_PATH/../$BUILD_DIR/.config"
 
@@ -419,6 +445,8 @@ REPO_BRANCH=${REPO_BRANCH:-main}
 BUILD_DIR=$(read_ini_by_key "BUILD_DIR")
 COMMIT_HASH=$(read_ini_by_key "COMMIT_HASH")
 COMMIT_HASH=${COMMIT_HASH:-none}
+BASE_CONFIG=$(read_ini_by_key "BASE_CONFIG")
+BASE_CONFIG_FILTER=$(read_ini_by_key "BASE_CONFIG_FILTER")
 
 resolve_config_fragments
 

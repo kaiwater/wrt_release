@@ -9,6 +9,24 @@ is_vikingyfy_nss_build() {
     [[ "$REPO_URL" == *"VIKINGYFY/immortalwrt"* || "$BUILD_DIR" == *"imm-nss"* ]]
 }
 
+fix_mtwifi_security_defaults() {
+    local file="$BUILD_DIR/package/mtk/applications/mtwifi-cfg-ucode/files/lib/wifi/mtwifi.uc"
+
+    if [ ! -f "$file" ]; then
+        return 0
+    fi
+
+    if grep -q '"encryption": "none"' "$file"; then
+        sed -i "s|\"encryption\": \"none\"|\"encryption\": \"psk2\", \"key\": \"${WIFI_PASSWORD:-kaiwater/wrt_release}\"|" "$file"
+        echo "已将 mtwifi 首次启动默认 WiFi 改为 psk2 + 默认密码。"
+    fi
+
+    if ! grep -q '"key":' "$file"; then
+        echo "警告：未找到 mtwifi.uc 的默认 key 注入点，保留上游默认。" >&2
+    fi
+}
+
+
 write_release_identity() {
     local etc_dir="$BUILD_DIR/package/base-files/files/etc"
     local build_date="${BUILD_DATE:-$(TZ=Asia/Shanghai date +%y.%m.%d_%H.%M.%S)}"

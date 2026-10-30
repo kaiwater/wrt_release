@@ -97,6 +97,7 @@ ubus call system board
 | 红米 | AX6 - LiBwrt | `redmi_ax6_libwrt` |
 | 小米 | AX3600 - VIKINGYFY main | `xiaomi_ax3600_immwrt` |
 | 小米 | AX3600 - LiBwrt | `xiaomi_ax3600_libwrt` |
+| Tenda | BE12 Pro（MT7987A + MT7992 / mtwifi） | `tenda_be12_pro_immwrt` |
 | 红米 | AX6000 | `redmi_ax6000_immwrt21` |
 | CMCC（中国移动） | RAX3000M | `cmcc_rax3000m_immwrt` |
 | 斐讯 | N1 | `n1_immwrt` |
@@ -120,7 +121,9 @@ ubus call system board
 - `wrt_core/compilecfg/<设备配置名>.ini`：定义源码仓库、分支、构建目录、默认配置片段、可选提交哈希和容器 SDK 镜像。
 - `wrt_core/deconfig/<设备配置名>.config`：定义 OpenWrt 目标平台、设备和软件包配置。
 
-不同设备会使用不同上游源码，例如 `VIKINGYFY/immortalwrt`、`immortalwrt/immortalwrt`、`LiBwrt/LibWrt`、`padavanonly/immortalwrt-mt798x` 或本仓库维护的特定分支。`BUILD_TARGET_SDK` 未配置时，容器构建默认使用 `immortalwrt/sdk:openwrt-25.12`。
+不同设备会使用不同上游源码，例如 `VIKINGYFY/immortalwrt`、`immortalwrt/immortalwrt`、`LiBwrt/LibWrt`、`padavanonly/immortalwrt-mt798x`、`chasey-dev/immortalwrt-mt798x-rebase` 或本仓库维护的特定分支。`BUILD_TARGET_SDK` 未配置时，容器构建默认使用 `immortalwrt/sdk:openwrt-25.12`。
+
+部分上游（如 Tenda BE12 Pro / mtwifi）要求使用上游完整 defconfig 作为基底，再叠加设备增量。此类设备在 `.ini` 中使用 `BASE_CONFIG` 指向仓库内的 defconfig，并用 `BASE_CONFIG_FILTER` 排除不需要的机型；构建时顺序为“上游 base config → 设备 delta → compile_base → fragments”。
 
 构建时会按顺序组合配置：
 

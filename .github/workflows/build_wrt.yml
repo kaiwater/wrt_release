@@ -30,6 +30,7 @@ on:
           - supergateway_s20m_immwrt
           - xiaomi_ax3600_libwrt
           - xiaomi_ax3600_immwrt
+          - tenda_be12_pro_immwrt
           - libwrt_all
           - immwrt_all
       add_fragments:
