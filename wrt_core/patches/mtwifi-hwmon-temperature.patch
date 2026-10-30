@@ -46,10 +46,12 @@ Signed-off-by: kaiwater <kaiwater@Gmail.com>
  
  #define BSSID_WCID_TO_REMOVE 1 /* Pat:TODO */
  
-@@ -4596,6 +4597,109 @@
+@@ -4594,8 +4595,118 @@
+ #ifndef DISABLE_HOSTAPD_BEACON
+ 	RT_CFG80211_CRDA_REG_RULE_APPLY(mac_ad);
  #endif
- }
- 
++}
++
 +#if IS_REACHABLE(CONFIG_HWMON)
 +/*
 + * Expose the per-band chip temperature to userspace through hwmon.
@@ -119,13 +121,20 @@ Signed-off-by: kaiwater <kaiwater@Gmail.com>
 +	if (!wiphy)
 +		return;
 +
-+	/* wiphy_dev() is the PCI function device set by the hwifi layer */
-+	dev = wiphy_dev(wiphy);
-+	if (!dev)
-+		return;
-+
-+	hwmon_dev = hwmon_device_register_with_info(dev, "mt_wifi", mac_ad,
-+			&mt_wifi_hwmon_chip_info, NULL);
++	/*
++	 * mt76 exposes the per-band sensors as phyN/hwmonN, so use the wiphy
++	 * device as parent and let tools that scan the phy hwmon nodes find
++	 * them.  Fall back to the bus device (phyN/device/hwmonN) when the
++	 * wiphy device cannot be used as a parent yet.
++	 */
++	hwmon_dev = hwmon_device_register_with_info(&wiphy->dev, "mt_wifi",
++			mac_ad, &mt_wifi_hwmon_chip_info, NULL);
++	if (IS_ERR(hwmon_dev)) {
++		dev = wiphy_dev(wiphy);
++		hwmon_dev = dev ? hwmon_device_register_with_info(dev, "mt_wifi",
++				mac_ad, &mt_wifi_hwmon_chip_info, NULL)
++				: ERR_PTR(-ENODEV);
++	}
 +	if (IS_ERR(hwmon_dev)) {
 +		MTWF_DBG(mac_ad, DBG_CAT_CFG, CATCFG_DBGLOG, DBG_LVL_WARN,
 +			 "hwmon registration failed (%ld)\n", PTR_ERR(hwmon_dev));
@@ -133,8 +142,8 @@ Signed-off-by: kaiwater <kaiwater@Gmail.com>
 +	}
 +
 +	mac_ad->hwmon_dev = hwmon_dev;
-+}
-+
+ }
+ 
 +static void mt_wifi_hwmon_unregister(struct _RTMP_ADAPTER *mac_ad)
 +{
 +	if (!mac_ad->hwmon_dev)
@@ -156,7 +165,7 @@ Signed-off-by: kaiwater <kaiwater@Gmail.com>
  int cfg80211_drv_init_cmd_handle(
  	struct _RTMP_ADAPTER *mac_ad,
  	struct wifi_dev *wdev,
-@@ -4614,11 +4718,14 @@
+@@ -4614,11 +4725,14 @@
  			mac_ad->cfg80211_ctrl.wiphy = mt_cfg80211_get_wiphy(
  					mac_ad->pCfg80211_CB->pCfg80211_Wdev);
  		CFG80211_reSetToDefault(mac_ad);
