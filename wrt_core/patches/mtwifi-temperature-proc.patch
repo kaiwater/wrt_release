@@ -1,0 +1,165 @@
+From: kaiwater <kaiwater@Gmail.com>
+Subject: [PATCH] mt_wifi7: expose per-band chip temperature through procfs
+
+The vendor mt_wifi driver reads the chip temperature for its thermal
+protection logic (RTMP_GET_TEMPERATURE -> HWCMD_ID_GET_TEMPERATURE) but
+never exposes the value to userspace.  The legacy WEXT ioctl
+(OID_GET_CPU_TEMPERATURE) is not registered on these builds and the
+cfg80211 vendor command has no userspace client in OpenWrt, so
+/sbin/tempinfo and the LuCI overview can only report the CPU temperature.
+
+The hwmon and thermal APIs are GPL-only, and mt_wifi is licensed as
+"Proprietary", so modpost rejects them:
+
+  ERROR: modpost: GPL-incompatible module mt_wifi.ko uses GPL-only symbol
+         'hwmon_device_register_with_info'
+
+Expose the value through procfs instead: one read-only file per band
+under /proc/net/mt_wifi/tempN, printing millidegrees Celsius (the same
+unit hwmon uses, so /sbin/tempinfo can divide by 1000).
+
+The temperature is queried on demand and only while the radio is
+started; otherwise the read returns -ENODATA instead of blocking on a
+MCU command that cannot be answered.
+
+Signed-off-by: kaiwater <kaiwater@Gmail.com>
+---
+--- a/mt_wifi/include/rtmp.h
++++ b/mt_wifi/include/rtmp.h
+@@ -7391,6 +7391,8 @@
+ 	struct bf_ctrl Bfctrl;
+ #endif /* TXBF_SUPPORT */
+ 	RvR_Debug_CTRL RVRDBGCtrl;
++	/* /proc/net/mt_wifi/tempN entry, see cfg80211drv.c */
++	void *temp_proc;
+ 
+ 	BOOL							 G_MODE_INFRA_TXOP_RUNNING;
+ 	struct wifi_dev				  *g_mode_txop_wdev;
+--- a/mt_wifi/os/linux/cfg80211/cfg80211drv.c
++++ b/mt_wifi/os/linux/cfg80211/cfg80211drv.c
+@@ -26,6 +26,7 @@
+ 
+ #include "rt_config.h"
+ #include "mgmt/be_internal.h"
++#include <net/net_namespace.h>
+ 
+ #define BSSID_WCID_TO_REMOVE 1 /* Pat:TODO */
+ 
+@@ -4596,6 +4597,101 @@
+ #endif
+ }
+ 
++#if IS_REACHABLE(CONFIG_PROC_FS)
++/*
++ * Expose the per-band chip temperature as /proc/net/mt_wifi/tempN.
++ *
++ * The driver only reads the temperature for its own thermal protection:
++ * the vendor WEXT ioctl is not registered on these builds and the cfg80211
++ * vendor command has no userspace client in OpenWrt.  The hwmon and thermal
++ * APIs are GPL-only and cannot be used from this proprietary module, so
++ * expose the value through procfs for /sbin/tempinfo.
++ *
++ * The temperature is queried on demand and only while the radio is
++ * started; otherwise the read returns -ENODATA instead of blocking on a
++ * MCU command that cannot be answered.
++ */
++static struct proc_dir_entry *mt_wifi_temp_dir;
++
++static ssize_t mt_wifi_temp_read(struct file *file, char __user *ubuf,
++				 size_t count, loff_t *ppos)
++{
++	struct _RTMP_ADAPTER *mac_ad = PDE_DATA(file_inode(file));
++	UINT32 temperature = 0;
++	char buf[16];
++	size_t left;
++	int len;
++
++	if (!mac_ad)
++		return -ENODEV;
++
++	if (!RTMP_TEST_FLAG(mac_ad, fRTMP_ADAPTER_START_UP))
++		return -ENODATA;
++
++	RTMP_GET_TEMPERATURE(mac_ad, hc_get_hw_band_idx(mac_ad), &temperature);
++	if (!temperature)
++		return -ENODATA;
++
++	/* millidegrees Celsius, same unit as hwmon temp1_input */
++	len = snprintf(buf, sizeof(buf), "%u\n", temperature * 1000);
++	if (len <= 0)
++		return -EINVAL;
++
++	if (*ppos >= len)
++		return 0;
++
++	left = (size_t)(len - *ppos);
++	if (left > count)
++		left = count;
++
++	if (copy_to_user(ubuf, buf + *ppos, left))
++		return -EFAULT;
++
++	*ppos += left;
++
++	return (ssize_t)left;
++}
++
++static const struct proc_ops mt_wifi_temp_proc_ops = {
++	.proc_read = mt_wifi_temp_read,
++};
++
++static void mt_wifi_temp_register(struct _RTMP_ADAPTER *mac_ad)
++{
++	char name[16];
++
++	if (mac_ad->temp_proc)
++		return;
++
++	if (!mt_wifi_temp_dir) {
++		mt_wifi_temp_dir = proc_mkdir("mt_wifi", init_net.proc_net);
++		if (!mt_wifi_temp_dir)
++			return;
++	}
++
++	snprintf(name, sizeof(name), "temp%d", hc_get_hw_band_idx(mac_ad));
++	mac_ad->temp_proc = proc_create_data(name, 0444, mt_wifi_temp_dir,
++					     &mt_wifi_temp_proc_ops, mac_ad);
++}
++
++static void mt_wifi_temp_unregister(struct _RTMP_ADAPTER *mac_ad)
++{
++	if (!mac_ad->temp_proc)
++		return;
++
++	proc_remove((struct proc_dir_entry *)mac_ad->temp_proc);
++	mac_ad->temp_proc = NULL;
++}
++#else
++static void mt_wifi_temp_register(struct _RTMP_ADAPTER *mac_ad)
++{
++}
++
++static void mt_wifi_temp_unregister(struct _RTMP_ADAPTER *mac_ad)
++{
++}
++#endif /* CONFIG_PROC_FS */
++
+ int cfg80211_drv_init_cmd_handle(
+ 	struct _RTMP_ADAPTER *mac_ad,
+ 	struct wifi_dev *wdev,
+@@ -4614,11 +4710,14 @@
+ 			mac_ad->cfg80211_ctrl.wiphy = mt_cfg80211_get_wiphy(
+ 					mac_ad->pCfg80211_CB->pCfg80211_Wdev);
+ 		CFG80211_reSetToDefault(mac_ad);
++		mt_wifi_temp_register(mac_ad);
+ 	} else if (sub_cmd == MT_80211_GET_BAND_INFO)
+ 		cfg80211_drv_get_band_info(
+ 			mac_ad, wdev, (struct mt_cfg80211_band *)ioctl_cfg->data);
+-	else if (sub_cmd == MT_80211_DRIVER_UNREGISTER)
++	else if (sub_cmd == MT_80211_DRIVER_UNREGISTER) {
++		mt_wifi_temp_unregister(mac_ad);
+ 		cfg80211_drv_unregister(mac_ad);
++	}
+ 	return ret;
+ }
+ 

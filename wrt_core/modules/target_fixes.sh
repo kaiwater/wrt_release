@@ -29,18 +29,19 @@ fix_mtwifi_security_defaults() {
 
 fix_mtwifi_temperature() {
     # mt_wifi7 厂商驱动不向上暴露芯片温度，LuCI 概览只剩 CPU 温度。
-    # 补丁给每个 band 注册一个 hwmon 设备，恢复 WiFi 温度显示。
+    # 补丁给每个 band 建一个 /proc/net/mt_wifi/tempN，恢复 WiFi 温度显示。
+    # 注：不能用 hwmon/thermal，那些 API 是 GPL-only，mt_wifi 是 Proprietary。
     local patch_dir="$BUILD_DIR/package/mtk/drivers/mt_wifi7/patches"
-    local src="$BASE_PATH/patches/mtwifi-hwmon-temperature.patch"
-    local dst="900-add-hwmon-temperature.patch"
+    local src="$BASE_PATH/patches/mtwifi-temperature-proc.patch"
+    local dst="900-add-temperature-proc.patch"
 
     if [ ! -d "$patch_dir" ] || [ ! -f "$src" ]; then
-        echo "未找到 mt_wifi7 驱动源码目录，跳过 hwmon 温度补丁。"
+        echo "未找到 mt_wifi7 驱动源码目录，跳过 WiFi 温度补丁。"
         return 0
     fi
 
     install -Dm644 "$src" "$patch_dir/$dst"
-    echo "已为 mt_wifi7 增加 hwmon 芯片温度接口。"
+    echo "已为 mt_wifi7 增加 /proc/net/mt_wifi 芯片温度接口。"
 }
 
 
