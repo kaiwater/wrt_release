@@ -130,6 +130,16 @@ jobs:
           echo "REPO_FLAG_HASH=$REPO_FLAG_HASH" >> "$GITHUB_ENV"
           echo "SOURCE_REV=$(git -C action_build rev-parse --short=12 HEAD 2>/dev/null || echo unknown)" >> "$GITHUB_ENV"
 
+      - name: Cache Downloads
+        uses: actions/cache@v6.1.0
+        with:
+          # dl/ 里的包按文件名+hash 命名，跨分支复用率很高，单独一把稳定的 key，
+          # 不跟 staging_dir 的 BUILD_DATE key 一起失效。
+          path: ./action_build/dl
+          key: ${{ matrix.os }}-${{ matrix.model }}-dl-${{ env.REPO_FLAG_HASH }}
+          restore-keys: |
+            ${{ matrix.os }}-${{ matrix.model }}-dl-
+
       - name: Cache Dependencies
         uses: actions/cache@v6.1.0
         with:
