@@ -142,12 +142,21 @@ jobs:
             ${{ matrix.os }}-${{ matrix.model }}-dl-${{ env.REPO_FLAG_HASH }}-
             ${{ matrix.os }}-${{ matrix.model }}-dl-
 
-      - name: Cache Dependencies
+      - name: Restore Ccache
+        uses: actions/cache/restore@v6.1.0
+        with:
+          # ccache 的内容是纯编译缓存，失败构建里的半成品也可以安全复用：
+          # 条目损坏时 ccache 自己会丢掉重编，不会污染产物。
+          path: ./action_build/.ccache
+          key: ${{ matrix.os }}-${{ matrix.model }}-ccache-${{ env.REPO_FLAG_HASH }}-${{ env.BUILD_DATE }}
+          restore-keys: |
+            ${{ matrix.os }}-${{ matrix.model }}-ccache-${{ env.REPO_FLAG_HASH }}-
+            ${{ matrix.os }}-${{ matrix.model }}-ccache-
+
+      - name: Cache Staging
         uses: actions/cache@v6.1.0
         with:
-          path: |
-            ./action_build/.ccache
-            ./action_build/staging_dir
+          path: ./action_build/staging_dir
           key: ${{ matrix.os }}-${{ matrix.model }}-${{ env.REPO_FLAG_HASH }}-${{ env.ADD_CONFIG_FRAGMENTS_KEY }}-${{ env.REMOVE_CONFIG_FRAGMENTS_KEY }}-${{ env.BUILD_DATE }}
           restore-keys: |
             ${{ matrix.os }}-${{ matrix.model }}-${{ env.REPO_FLAG_HASH }}-${{ env.ADD_CONFIG_FRAGMENTS_KEY }}-${{ env.REMOVE_CONFIG_FRAGMENTS_KEY }}-
@@ -202,6 +211,16 @@ jobs:
         with:
           path: ./action_build/dl
           key: ${{ matrix.os }}-${{ matrix.model }}-dl-${{ env.REPO_FLAG_HASH }}-${{ env.BUILD_DATE }}
+
+      - name: Save Ccache
+        # 失败构建里的 ccache 也保存：第二次构建大部分目标文件直接命中，
+        # 这是把“3 小时 → 45 分钟”拉近的关键。
+        if: always()
+        continue-on-error: true
+        uses: actions/cache/save@v6.1.0
+        with:
+          path: ./action_build/.ccache
+          key: ${{ matrix.os }}-${{ matrix.model }}-ccache-${{ env.REPO_FLAG_HASH }}-${{ env.BUILD_DATE }}
 
       - name: Get Kernel Verion
         run: |
