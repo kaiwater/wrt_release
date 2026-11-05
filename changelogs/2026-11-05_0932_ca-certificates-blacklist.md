@@ -43,6 +43,7 @@ wrt_core/patches/ca-certificates-blacklist-certs.patch
 | 上游 | `ca-certificates` 版本 | 结果 |
 |---|---|---|
 | `padavanonly/immortalwrt-mt798x` openwrt-21.02 | 20230311 | 通过 |
+| 现存 LibWrt 25.12 设备（较早构建） | 20260601 | 通过 |
 | `padavanonly/immortalwrt-mt798x-6.6` openwrt-24.10-6.6 | 20260223 | 通过 |
 | `VIKINGYFY` / `LibWrt` / `immortalwrt` / `chasey-dev` | 20260816 | 通过 |
 
@@ -52,6 +53,19 @@ wrt_core/patches/ca-certificates-blacklist-certs.patch
 - 重复执行：第二次检测到 `emSign` 后跳过
 - 上游已有同类补丁：跳过
 - 非 Debian 源码布局 / 没有 `ca-certificates` 包：跳过
+
+## 现场设备核对
+
+核对了两台已刷机的设备，两者都构建于本次补丁提交之前：
+
+| 设备 | 固件 | `ca-certificates` | `emSign ECC Root CA - G3` |
+|---|---|---|---|
+| Aliyun AP8220（ipq807x） | ImmortalWRT SNAPSHOT，10 月 15 日构建 | 20260816 | 仍存在 |
+| JDCloud CS-02（ipq60xx） | LibWrt 25.12-SNAPSHOT，10 月 27 日构建 | 20260601 | 仍存在 |
+
+两台设备都只有 `ca-bundle`（单个 `ca-certificates.crt`），用 `openssl pkcs7 -print_certs` 解析后仍能看到 `emSign ECC Root CA - G3`，说明黑名单没有生效。`Comodo AAA Services root` 在这两台设备上已经不存在，无需额外处理。
+
+两台设备都没有 `/etc/wrt_release`，属于 release identity 之前的构建，需要重新编译并刷入才会带上这次的黑名单。
 
 ## 影响范围
 
