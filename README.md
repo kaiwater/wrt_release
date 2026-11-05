@@ -125,6 +125,8 @@ ubus call system board
 
 部分上游（如 Tenda BE12 Pro / mtwifi）要求使用上游完整 defconfig 作为基底，再叠加设备增量。此类设备在 `.ini` 中使用 `BASE_CONFIG` 指向仓库内的 defconfig，并用 `BASE_CONFIG_FILTER` 排除不需要的机型；构建时顺序为“上游 base config → 设备 delta → compile_base → fragments”。
 
+构建阶段还会统一给 `ca-certificates` 补一条根证书黑名单（`emSign ECC Root CA - G3`、`Comodo AAA Services root`），与 Debian / OpenWrt 上游的处理保持一致，减少根证书体系被投毒后进入固件信任链的机会。上游已自带同类补丁时会自动跳过，非 Debian 源码布局的 `ca-certificates` 也不会强行套用。
+
 构建时会按顺序组合配置：
 
 1. 设备专用 `.config`

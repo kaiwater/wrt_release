@@ -45,6 +45,51 @@ fix_mtwifi_temperature() {
 }
 
 
+fix_ca_certificates_blacklist() {
+    # ca-certificates 的根证书列表来自 Debian 源码包，mozilla/blacklist.txt 决定
+    # 哪些证书会被打进镜像。这里把已被 Debian 明确 distrust 的根证书加入黑名单，
+    # 降低上游 CA 体系被投毒后影响固件信任链的机会。
+    local candidate
+    local pkg_dir=""
+    local src="$BASE_PATH/patches/ca-certificates-blacklist-certs.patch"
+    local dst_name="1000-blacklist-certs.patch"
+
+    for candidate in \
+        "$BUILD_DIR/package/system/ca-certificates" \
+        "$BUILD_DIR/package/feeds/packages/ca-certificates"; do
+        if [ -f "$candidate/Makefile" ]; then
+            pkg_dir="$candidate"
+            break
+        fi
+    done
+
+    if [ -z "$pkg_dir" ]; then
+        echo "未找到 ca-certificates 包，跳过根证书黑名单补丁。"
+        return 0
+    fi
+
+    # 只处理 Debian ca-certificates 源码布局（含 mozilla/blacklist.txt）。
+    if ! grep -qE 'DEBIAN|debian\.org' "$pkg_dir/Makefile"; then
+        echo "ca-certificates 不是 Debian 源码布局，跳过根证书黑名单补丁。"
+        return 0
+    fi
+
+    # 上游已经自带同类补丁时不再重复安装。
+    if grep -rqs 'emSign ECC Root CA - G3' "$pkg_dir/patches" 2>/dev/null; then
+        echo "ca-certificates 已包含 emSign 根证书黑名单，跳过。"
+        return 0
+    fi
+
+    if [ ! -f "$src" ]; then
+        echo "警告：缺少 $src，跳过根证书黑名单补丁。" >&2
+        return 0
+    fi
+
+    install -Dm644 "$src" "$pkg_dir/patches/$dst_name"
+    echo "已为 ca-certificates 加入根证书黑名单：emSign ECC Root CA - G3 / Comodo AAA Services root。"
+}
+
+
 write_release_identity() {
     local etc_dir="$BUILD_DIR/package/base-files/files/etc"
     local build_date="${BUILD_DATE:-$(TZ=Asia/Shanghai date +%y.%m.%d_%H.%M.%S)}"
