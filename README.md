@@ -142,6 +142,8 @@ ubus call system board
 - SMB 共享默认使用轻量的 `samba_ksmbd`（`ksmbd-server` + `luci-app-ksmbd`）；需要完整 Samba4 时用 `samba4` 替换，两者不要同时启用。
 - USB 支持按设备启用：CS-02 / AP8220 使用 `usb_storage`（USB 3.0 + 存储/网络 kmod），AX3600 没有 USB 口，不启用该 fragment。
 - 只有已显式选择 Dockerman 或明确适合运行 Docker 的设备默认包含 `docker_deps`，用于预置手动安装 Docker 所需的运行依赖，避免 NAND 空间紧张或无 USB 设备被默认加入 Docker 依赖。
+- 空间紧张或不需要图形化应用商店的设备可追加 `light_apps`：关闭 iStore（`luci-app-istorex` / `luci-app-store` / `luci-app-quickstart` / `quickstart`）、`lucky` / `luci-app-lucky` 以及 `xray-core`，PassWall 只保留 `sing-box` 后端。目前 AP8220、AX6600（CS-02）和 BE12 Pro 使用该片段；需要 xray 时可在设备上单独 `apk add xray-core`。
+- `luci-app-lucky` 硬依赖 `lucky`，而 `lucky` 是构建时从上游 release 下载的预编译二进制（约 14 MB），无法只装 LuCI 页面而不带二进制，因此“lucky 最小安装”等同于不安装这两个包。
 
 `ADD_CONFIG_FRAGMENTS` 会在默认片段后追加，`REMOVE_CONFIG_FRAGMENTS` 会从最终片段中移除对应配置片段。移除只表示“不追加这个 fragment”，不会反向修改设备 `.config` 或 `compile_base.config` 中已经写明的配置。
 
