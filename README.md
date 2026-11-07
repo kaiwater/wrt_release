@@ -148,6 +148,8 @@ ubus call system board
 
 `ADD_CONFIG_FRAGMENTS` 会在默认片段后追加，`REMOVE_CONFIG_FRAGMENTS` 会从最终片段中移除对应配置片段。移除只表示“不追加这个 fragment”，不会反向修改设备 `.config` 或 `compile_base.config` 中已经写明的配置。
 
+构建还会注入 `/etc/uci-defaults/993_firewall_log_limit`：首次启动时给所有 fw4 zone 补上 `log_limit`（默认 `10/minute`），避免某条 DROP 规则把内核日志刷满、把启动阶段的驱动日志挤出 ring buffer。已经显式配置 `log_limit` 的 zone 不会被覆盖；仍在使用 fw3/iptables 的设备没有 `/sbin/fw4`，脚本会自动跳过。
+
 ## 7. 三方插件
 
 三方插件主要通过 feeds 机制加入，其中 small-package 源自：
