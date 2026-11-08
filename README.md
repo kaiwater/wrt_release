@@ -172,6 +172,7 @@ https://github.com/kenzok8/small-package.git
 - `wrt_core/deconfig/fragments/`：可组合配置片段。
 - `wrt_core/modules/`：模块化脚本，包括仓库准备、网络重试、feeds/custom_feed、源码修正、LuCI 修正、服务修正、验证、Docker、CUPS 等静态职责模块。
 - `wrt_core/patches/`：补丁、默认设置、Wi-Fi 初始化、NSS 诊断、PBR 规则和其他构建时注入文件。
+- `tools/upstream-check.sh`：本地对比四条固件线（LibWrt、VIKINGYFY main、chasey wifi7、chasey 25.12）相对最近一次 release 的上游新增提交，需要已登录的 `gh`。
 
 ## 9. OAF（应用过滤）功能使用说明
 
