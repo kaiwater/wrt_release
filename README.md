@@ -98,7 +98,6 @@ ubus call system board
 | 小米 | AX3600 - VIKINGYFY main | `xiaomi_ax3600_immwrt` |
 | 小米 | AX3600 - LiBwrt | `xiaomi_ax3600_libwrt` |
 | Tenda | BE12 Pro（MT7987A + MT7992 / mtwifi） | `tenda_be12_pro_immwrt` |
-| 红米 | AX6000 | `redmi_ax6000_immwrt21` |
 | CMCC（中国移动） | RAX3000M | `cmcc_rax3000m_immwrt` |
 | 斐讯 | N1 | `n1_immwrt` |
 | 兆能 | M2 | `zn_m2_immwrt` |

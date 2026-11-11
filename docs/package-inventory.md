@@ -87,7 +87,7 @@
 
 ### proxy
 
-使用机型：`aliyun_ap8220_immwrt`、`aliyun_ap8220_libwrt`、`cmcc_rax3000m_immwrt`、`gemtek_w1701k_immwrt`、`jdcloud_ax6000_immwrt`、`jdcloud_ipq60xx_immwrt`、`jdcloud_ipq60xx_libwrt`、`link_nn6000v2_immwrt`、`linksys_mx4x00_immwrt`、`n1_immwrt`、`qihoo_360v6_immwrt`、`redmi_ax5_immwrt`、`redmi_ax6000_immwrt21`、`redmi_ax6_immwrt`、`redmi_ax6_libwrt`、`supergateway_s20m_immwrt`、`tenda_be12_pro_immwrt`、`x64_immwrt`、`xiaomi_ax3600_immwrt`、`xiaomi_ax3600_libwrt`、`zn_m2_immwrt`、`zn_m2_libwrt`
+使用机型：`aliyun_ap8220_immwrt`、`aliyun_ap8220_libwrt`、`cmcc_rax3000m_immwrt`、`gemtek_w1701k_immwrt`、`jdcloud_ax6000_immwrt`、`jdcloud_ipq60xx_immwrt`、`jdcloud_ipq60xx_libwrt`、`link_nn6000v2_immwrt`、`linksys_mx4x00_immwrt`、`n1_immwrt`、`qihoo_360v6_immwrt`、`redmi_ax5_immwrt`、`redmi_ax6_immwrt`、`redmi_ax6_libwrt`、`supergateway_s20m_immwrt`、`tenda_be12_pro_immwrt`、`x64_immwrt`、`xiaomi_ax3600_immwrt`、`xiaomi_ax3600_libwrt`、`zn_m2_immwrt`、`zn_m2_libwrt`
 
 | 包 | libwrt | ap8220 | be12 |
 |---|---|---|---|
@@ -222,7 +222,6 @@
 | `n1_immwrt` | docker_deps, proxy |
 | `qihoo_360v6_immwrt` | nss, proxy |
 | `redmi_ax5_immwrt` | nss, proxy |
-| `redmi_ax6000_immwrt21` | proxy |
 | `redmi_ax6_immwrt` | nss, proxy |
 | `redmi_ax6_libwrt` | nss, proxy |
 | `supergateway_s20m_immwrt` | proxy |
