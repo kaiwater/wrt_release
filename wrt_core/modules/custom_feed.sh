@@ -61,8 +61,10 @@ sync_sparse_packages_to_feed_dir() {
 
     for pkg in "${packages[@]}"; do
         if [ -d "$tmp_dir/$pkg" ]; then
-            target_pkg="$target_dir/$pkg"
-            if ! mkdir -p "$(dirname "$target_pkg")" || ! rm -rf "$target_pkg" || ! mv "$tmp_dir/$pkg" "$target_pkg"; then
+            # 源仓库里的路径可能是多级（如 package/emortal/xxx、luci-app-quickfile/quickfile），
+            # custom_feed 采用扁平布局，统一把叶子目录移动到 target_dir 根下。
+            target_pkg="$target_dir/$(basename "$pkg")"
+            if ! rm -rf "$target_pkg" || ! mv "$tmp_dir/$pkg" "$target_dir/"; then
                 echo "错误：无法将 $repo_label 的 $pkg 移动到 $target_pkg" >&2
                 rm -rf "$tmp_dir"
                 return 1
