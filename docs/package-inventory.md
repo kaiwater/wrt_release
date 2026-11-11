@@ -117,7 +117,7 @@
 
 ### samba_ksmbd
 
-使用机型：`aliyun_ap8220_immwrt`、`aliyun_ap8220_libwrt`、`jdcloud_ipq60xx_immwrt`、`jdcloud_ipq60xx_libwrt`、`xiaomi_ax3600_immwrt`、`xiaomi_ax3600_libwrt`
+使用机型：`aliyun_ap8220_immwrt`、`aliyun_ap8220_libwrt`、`jdcloud_ipq60xx_immwrt`、`jdcloud_ipq60xx_libwrt`
 
 | 包 | libwrt | ap8220 | be12 |
 |---|---|---|---|
@@ -215,8 +215,8 @@
 | `cmcc_rax3000m_immwrt` | proxy |
 | `gemtek_w1701k_immwrt` | proxy |
 | `jdcloud_ax6000_immwrt` | docker_deps, proxy |
-| `jdcloud_ipq60xx_immwrt` | nss, samba_ksmbd, usb_storage, docker_deps, proxy |
-| `jdcloud_ipq60xx_libwrt` | nss, samba_ksmbd, usb_storage, docker_deps, proxy, light_apps |
+| `jdcloud_ipq60xx_immwrt` | nss, samba_ksmbd, wsdd2, smb_avahi, usb_storage, docker_deps, proxy |
+| `jdcloud_ipq60xx_libwrt` | nss, samba_ksmbd, wsdd2, smb_avahi, usb_storage, docker_deps, proxy, light_apps |
 | `link_nn6000v2_immwrt` | nss, docker_deps, proxy |
 | `linksys_mx4x00_immwrt` | nss, proxy |
 | `n1_immwrt` | docker_deps, proxy |
@@ -228,8 +228,8 @@
 | `supergateway_s20m_immwrt` | proxy |
 | `tenda_be12_pro_immwrt` | proxy, light_apps, tenda_be12_pro_minimal |
 | `x64_immwrt` | docker_deps, proxy |
-| `xiaomi_ax3600_immwrt` | nss, nss_mem_512m, samba_ksmbd, proxy |
-| `xiaomi_ax3600_libwrt` | nss, nss_mem_512m, samba_ksmbd, proxy |
+| `xiaomi_ax3600_immwrt` | nss, nss_mem_512m, proxy |
+| `xiaomi_ax3600_libwrt` | nss, nss_mem_512m, proxy |
 | `zn_m2_immwrt` | nss, proxy |
 | `zn_m2_libwrt` | nss, proxy |
 

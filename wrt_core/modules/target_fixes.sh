@@ -165,6 +165,7 @@ fix_default_set() {
     install -Dm544 "$BASE_PATH/patches/991_custom_settings" "$BUILD_DIR/package/base-files/files/etc/uci-defaults/991_custom_settings"
     install -Dm544 "$BASE_PATH/patches/992_set-wifi-uci.sh" "$wifi_uci_script"
     install -Dm544 "$BASE_PATH/patches/993_firewall_log_limit" "$BUILD_DIR/package/base-files/files/etc/uci-defaults/993_firewall_log_limit"
+    install -Dm544 "$BASE_PATH/patches/994_smb_discovery" "$BUILD_DIR/package/base-files/files/etc/uci-defaults/994_smb_discovery"
     sed -i "s/__WIFI_COUNTRY__/${WIFI_COUNTRY:-CN}/g" "$wifi_uci_script"
     sed -i "s|__WIFI_PASSWORD__|${WIFI_PASSWORD:-kaiwater/wrt_release}|g" "$wifi_uci_script"
 

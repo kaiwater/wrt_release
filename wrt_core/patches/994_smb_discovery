@@ -1,0 +1,51 @@
+#!/bin/sh
+# 京东云雅典娜 02（jdcloud,re-cs-02）专用。
+#
+# SMB 名字发现：
+#   Windows -> wsdd2：WSD(3702) + LLMNR(5355)
+#   macOS   -> mDNS/Bonjour：_smb._tcp(5353)
+# CS-02 的 ksmbd/wsdd2/umdns 一般挂在 wan（上游 LAN，例如 br-wan-bypass），
+# fw4 的 wan input 默认 REJECT，需要放行并让 umdns 同时监听该接口。
+
+[ "$(cat /tmp/sysinfo/board_name 2>/dev/null)" = "jdcloud,re-cs-02" ] || exit 0
+
+# 1) 防火墙：WSD / mDNS / LLMNR
+if ! uci show firewall 2>/dev/null | grep -q 'Allow-WSD-LLMNR'; then
+	uci set firewall.wsdd2_discovery=rule
+	uci set firewall.wsdd2_discovery.name='Allow-WSD-LLMNR'
+	uci set firewall.wsdd2_discovery.src='wan'
+	uci set firewall.wsdd2_discovery.proto='udp'
+	uci set firewall.wsdd2_discovery.dest_port='3702 5353 5355'
+	uci set firewall.wsdd2_discovery.target='ACCEPT'
+	uci set firewall.wsdd2_discovery.enabled='1'
+
+	# 只放行上游网段，避免把 WSD/mDNS/LLMNR 暴露到真正的公网口。
+	. /lib/functions/network.sh 2>/dev/null
+	network_get_device wan_dev wan 2>/dev/null
+	[ -n "$wan_dev" ] || wan_dev="$(uci -q get network.wan.device)"
+	subnet="$(ip -4 route show dev "$wan_dev" scope link 2>/dev/null | awk '/proto kernel/{print $1; exit}')"
+	[ -n "$subnet" ] && uci set firewall.wsdd2_discovery.src_ip="$subnet"
+
+	uci commit firewall
+fi
+
+# 2) umdns：同时监听 lan 和 wan。umdns 启动时会自动补 5353 的防火墙规则。
+if uci -q get umdns.@umdns[0] >/dev/null 2>&1; then
+	umdns_net="$(uci -q get umdns.@umdns[0].network 2>/dev/null)"
+	if ! echo "$umdns_net" | grep -qw wan; then
+		umdns_net="${umdns_net:-lan}"
+		uci set umdns.@umdns[0].network="$umdns_net wan"
+		uci commit umdns
+		/etc/init.d/umdns enabled && /etc/init.d/umdns restart >/dev/null 2>&1
+	fi
+fi
+
+# 3) avahi 开机自启；/etc/avahi/services/smb.service 由 ksmbd-avahi-service 安装。
+if [ -x /etc/init.d/avahi-daemon ]; then
+	if ! /etc/init.d/avahi-daemon enabled; then
+		/etc/init.d/avahi-daemon enable
+		/etc/init.d/avahi-daemon restart >/dev/null 2>&1
+	fi
+fi
+
+exit 0

@@ -43,6 +43,32 @@ EOF
 }
 
 
+fix_wsdd2_interface() {
+    local init="$BUILD_DIR/feeds/packages/net/wsdd2/files/wsdd2.init"
+
+    [ -f "$init" ] || return 0
+
+    # 已经改过就跳过，保证 update.sh 可重复执行。
+    grep -q 'follow ksmbd' "$init" && return 0
+
+    if ! grep -q '^[[:space:]]*network_get_device ifname lan$' "$init"; then
+        echo "警告：wsdd2.init 结构已变化，跳过 ksmbd 接口修正。" >&2
+        return 0
+    fi
+
+    # wsdd2 上游固定绑定 UCI 的 lan 接口，而 ksmbd 可以配在 wan（例如 CS-02
+    # 的 br-wan-bypass）。这里改成跟随 ksmbd.@globals[0].interface，未配置时
+    # 仍回落到 lan，不影响其他机型。
+    sed -i \
+        -e 's|^\([[:space:]]*\)# resolve lan interface (BUG: No multi-interface binds atm)|\1# follow ksmbd interface (default lan); wsdd2 supports one -i only|' \
+        -e 's|^\([[:space:]]*\)local ifname$|\1local ifname smb_net|' \
+        -e 's|^\([[:space:]]*\)network_get_device ifname lan$|\1smb_net="$(uci -q get ksmbd.@globals[0].interface)"\n\1smb_net="${smb_net%% *}"\n\1smb_net="${smb_net:-lan}"\n\1network_get_device ifname "$smb_net"|' \
+        "$init"
+
+    echo "已让 wsdd2 跟随 ksmbd 的 interface 设置。"
+}
+
+
 install_opkg_distfeeds() {
     local emortal_def_dir="$BUILD_DIR/package/emortal/default-settings"
     local distfeeds_conf="$emortal_def_dir/files/99-distfeeds.conf"

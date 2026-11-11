@@ -139,6 +139,7 @@ stage_post_install_package_fixes() {
     verify_custom_feed_installed_paths
     docker_stack_sync_nftables_compat "$BUILD_DIR" "0"
     fix_cups_libcups_avahi_depends
+    fix_wsdd2_interface
     update_adguardhome
     update_script_priority
     update_geoip

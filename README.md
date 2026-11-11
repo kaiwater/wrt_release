@@ -140,6 +140,7 @@ ubus call system board
 - 512MB 内存的 IPQ807x 设备（如 AX3600）额外包含 `nss_mem_512m`，用于把 `nss` 中的 1G NSS 内存档位覆盖为 512M；该片段必须排在 `nss` 之后。
 - `nss` 默认使用 12.5 NSS 固件/驱动（与 qosmio NSS-12.5 feed 和 VIKINGYFY 当前版本一致）。如果需要 NSS mesh (802.11s)、WDS 或 IPQ807x RMNET，请在 `nss` 之后追加 `nss_fw_11_4`，切回 11.4 固件/驱动。
 - SMB 共享默认使用轻量的 `samba_ksmbd`（`ksmbd-server` + `luci-app-ksmbd`）；需要完整 Samba4 时用 `samba4` 替换，两者不要同时启用。
+- ksmbd（kmod 模式）没有 `nmbd`：Windows 10/11 的“网络”靠 `wsdd2`（WSD + LLMNR），macOS Finder 靠 mDNS `_smb._tcp`（`ksmbd-avahi-service` + `umdns`）。这两个片段目前只挂在 `jdcloud_ipq60xx_immwrt` / `jdcloud_ipq60xx_libwrt`（京东云雅典娜 02 / CS-02 / AX6600）；构建时还会让 `wsdd2.init` 跟随 ksmbd 的 `interface`（默认仍回落 `lan`），并由 `994_smb_discovery` 仅在 CS-02 上放行 UDP 3702/5353/5355 和把 umdns 加到 `wan`。AP8220 有 USB 但暂只保留 `wsdd2`（Windows），需要 macOS 时再追加 `smb_avahi`；AX3600 没有 USB，已不再挂 `samba_ksmbd`。依赖闭包见 `docs/smb-discovery-deps.md`。同一网段有多台设备时主机名必须唯一，否则 WSD/LLMNR/mDNS 名字会冲突；排查用 `tools/smb-discovery-check.sh`。
 - USB 支持按设备启用：CS-02 / AP8220 使用 `usb_storage`（USB 3.0 + 存储/网络 kmod），AX3600 没有 USB 口，不启用该 fragment。
 - 只有已显式选择 Dockerman 或明确适合运行 Docker 的设备默认包含 `docker_deps`，用于预置手动安装 Docker 所需的运行依赖，避免 NAND 空间紧张或无 USB 设备被默认加入 Docker 依赖。
 - 空间紧张或不需要图形化应用商店的设备可追加 `light_apps`：关闭 iStore（`luci-app-istorex` / `luci-app-store` / `luci-app-quickstart` / `quickstart`）、`lucky` / `luci-app-lucky` 以及 `xray-core`，PassWall 只保留 `sing-box` 后端。目前 AP8220、AX6600（CS-02）和 BE12 Pro 使用该片段；需要 xray 时可在设备上单独 `apk add xray-core`。
