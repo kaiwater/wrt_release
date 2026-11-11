@@ -22,12 +22,33 @@ else
 	cpu_temp="$(awk '{printf("%.1f°C", $0 / 1000)}' "$THERMAL_PATH/thermal_zone0/temp" 2>"/dev/null")"
 fi
 
-if [ -n "$cpu_temp" ] && [ -z "$wifi_temp" ]; then
-	echo -n "CPU: $cpu_temp"
-elif [ -z "$cpu_temp" ] && [ -n "$wifi_temp" ]; then
-	echo -n "WiFi: $wifi_temp"
-elif [ -n "$cpu_temp" ] && [ -n "$wifi_temp" ]; then
-	echo -n "CPU: $cpu_temp, WiFi: $wifi_temp"
-else
-	echo -n "No temperature info"
+# PMIC 结温：IPQ807x + PMP8074 等平台在 SPMI ADC 上暴露 pmic_die（m°C）
+pmic_temp=""
+for d in /sys/bus/iio/devices/iio:device*; do
+	case "$(cat "$d/name" 2>"/dev/null")" in
+		*adc@3100*)
+			v="$(cat "$d/in_temp_pmic_die_input" 2>"/dev/null")"
+			[ -n "$v" ] && pmic_temp="$(awk -v x="$v" 'BEGIN{printf "%.1f°C", x / 1000}')"
+			;;
+	esac
+done
+
+# PoE 供电功率：只有本身带 PSE 的设备才有 pse ubus 对象，
+# 普通受电设备（如 AP8220）不会输出这一项。
+poe_power=""
+if command -v ubus >"/dev/null" 2>&1; then
+	pse="$(ubus call pse status 2>"/dev/null")"
+	if [ -n "$pse" ]; then
+		cost="$(printf '%s' "$pse" | grep -o '"cost":"[0-9]*' | grep -o '[0-9]*' | awk '{s += $1} END {print s + 0}')"
+		[ "${cost:-0}" -gt 0 ] && poe_power="$(awk -v x="$cost" 'BEGIN{printf "%.1fW", x / 10}')"
+	fi
 fi
+
+out=""
+[ -n "$cpu_temp" ] && out="CPU: $cpu_temp"
+[ -n "$wifi_temp" ] && out="${out:+$out, }WiFi: $wifi_temp"
+[ -n "$pmic_temp" ] && out="${out:+$out, }PMIC: $pmic_temp"
+[ -n "$poe_power" ] && out="${out:+$out, }PoE: $poe_power"
+[ -n "$out" ] || out="No temperature info"
+
+echo -n "$out"
