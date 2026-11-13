@@ -83,6 +83,7 @@ stage_pre_install_source_fixes() {
     fix_mtwifi_security_defaults
     fix_mtwifi_temperature
     fix_ca_certificates_blacklist
+    fix_dropbear_security_backports
     fix_miniupnpd
     update_golang
     ensure_vikingyfy_libffi

@@ -90,6 +90,48 @@ fix_ca_certificates_blacklist() {
 }
 
 
+fix_dropbear_security_backports() {
+    # 25.12 分支的 dropbear 2025.89 缺少 2026.90/2026.92 的安全修复：
+    #   CVE-2026-3706  curve25519 签名可延展性（S < L / y < p 检查）
+    #   -t 双因素下绕过 authorized_keys 的 forced_command
+    #   -t 与 -B（空密码）组合的认证绕过
+    #   超长 authorized_keys 行被拆成新行，可绕过 command= 等限制
+    # 上游 2026.94 已全部包含；这里按上游提交回移到 2025.89，避免整包升级。
+    local pkg_dir="$BUILD_DIR/package/network/services/dropbear"
+    local src_dir="$BASE_PATH/patches/dropbear"
+    local ver f count=0
+
+    if [ ! -f "$pkg_dir/Makefile" ]; then
+        echo "未找到 dropbear 源码目录，跳过安全补丁。"
+        return 0
+    fi
+
+    ver=$(sed -n 's/^PKG_VERSION:=//p' "$pkg_dir/Makefile" | head -n1)
+    if [ "$ver" != "2025.89" ]; then
+        echo "dropbear 版本为 ${ver:-unknown}，已包含 2026.90+ 修复，跳过回移补丁。"
+        return 0
+    fi
+
+    if [ ! -d "$src_dir" ]; then
+        echo "警告：未找到 dropbear 回移补丁目录：$src_dir" >&2
+        return 1
+    fi
+
+    for f in "$src_dir"/00*.patch; do
+        [ -f "$f" ] || continue
+        install -Dm644 "$f" "$pkg_dir/patches/$(basename "$f")"
+        count=$((count + 1))
+    done
+
+    if [ "$count" -eq 0 ]; then
+        echo "警告：dropbear 回移补丁目录为空：$src_dir" >&2
+        return 1
+    fi
+
+    echo "已为 dropbear 2025.89 追加 ${count} 个安全回移补丁。"
+}
+
+
 write_release_identity() {
     local etc_dir="$BUILD_DIR/package/base-files/files/etc"
     local build_date="${BUILD_DATE:-$(TZ=Asia/Shanghai date +%y.%m.%d_%H.%M.%S)}"
