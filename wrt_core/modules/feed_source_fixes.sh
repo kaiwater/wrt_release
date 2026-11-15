@@ -246,6 +246,24 @@ fix_easytier_mk() {
 }
 
 
+fix_golang_versioned_build_deps() {
+    # 部分 packages feed 已把 Go 依赖写成 golang1.27/host，但同一棵
+    # feed 里的 Go 包名仍是 golang（没有 golang1.27 源包）。这会让
+    # tailscale / cloudflared / telegraf 等包在扫描阶段直接失败。
+    # 仅当确认没有 golang1.27 源包时，把版本化 host 依赖回退到 golang/host。
+    local go_pkg="./feeds/packages/lang/golang/golang/Makefile"
+    local mk
+
+    [ -f "$go_pkg" ] || return 0
+    grep -q '^PKG_NAME:=golang$' "$go_pkg" || return 0
+    [ -d "./feeds/packages/lang/golang1.27" ] && return 0
+
+    while IFS= read -r mk; do
+        sed -i 's|golang1\.27/host|golang/host|g' "$mk"
+    done < <(grep -rl 'golang1\.27/host' ./feeds/packages --include=Makefile 2>/dev/null)
+}
+
+
 remove_tweaked_packages() {
     local target_mk="$BUILD_DIR/include/target.mk"
     if [ -f "$target_mk" ]; then
