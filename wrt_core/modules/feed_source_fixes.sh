@@ -264,6 +264,19 @@ fix_golang_versioned_build_deps() {
 }
 
 
+fix_dockerd_nested_executables() {
+    # dockerd 29.x 的 hack/make/binary-daemon 会无条件复制
+    # docker-init / rootlesskit 等嵌套可执行文件。OpenWrt 宿主只提供
+    # 其中一部分，command -v 为空时 cp 会失败，导致 dockerd 编译中断。
+    local pkg="./feeds/packages/utils/dockerd"
+    local src="$BASE_PATH/patches/dockerd-skip-missing-nested-executables.patch"
+
+    [ -f "$pkg/Makefile" ] || return 0
+    [ -f "$src" ] || return 0
+    install -Dm644 "$src" "$pkg/patches/010-skip-missing-nested-executables.patch"
+}
+
+
 remove_tweaked_packages() {
     local target_mk="$BUILD_DIR/include/target.mk"
     if [ -f "$target_mk" ]; then

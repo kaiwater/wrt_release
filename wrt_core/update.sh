@@ -85,6 +85,7 @@ stage_pre_install_source_fixes() {
     fix_ca_certificates_blacklist
     fix_dropbear_security_backports
     fix_golang_versioned_build_deps
+    fix_dockerd_nested_executables
     fix_miniupnpd
     update_golang
     ensure_vikingyfy_libffi
