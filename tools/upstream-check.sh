@@ -15,14 +15,17 @@
 #
 # 基线取自各自最近一次 release：
 #   1-3: release 正文里的 "Source: ... @ <rev>"
-#   4:   latest release 对应构建的 staging 缓存 key 中的 upstream commit
-# 取不到时回退为 release 日期之前的最后一个上游提交。
+#   4:   tools/release-baseline.tsv 里记录的、该 release 使用的 chasey commit
+# 取不到时回退为 release 日期之前的最后一个 chasey 上游提交。
 
 set -uo pipefail
 
+SCRIPT_DIR=$(cd "$(dirname "$0")" && pwd)
 GH=${GH:-gh}
 REL_REPO=${REL_REPO:-kaiwater/wrt_release}
-RAX_REPO=${RAX_REPO:-kaiwater/immortalwrt-mt798x-25.12}
+BUILD_REPO=${BUILD_REPO:-kaiwater/immortalwrt-mt798x-build}
+LEGACY_REPO=${LEGACY_REPO:-kaiwater/immortalwrt-mt798x-25.12}
+BASELINE_FILE=${BASELINE_FILE:-$SCRIPT_DIR/release-baseline.tsv}
 CHASEY_REPO=${CHASEY_REPO:-chasey-dev/immortalwrt-mt798x-rebase}
 MAX_COMMITS=${MAX_COMMITS:-30}
 
@@ -53,6 +56,23 @@ head_of() { # repo branch
 
 first_commit_before() { # repo branch YYYY-MM-DD
 	"$GH" api "repos/$1/commits?sha=$2&until=${3}T23:59:59Z&per_page=1" --jq '.[0].sha' 2>/dev/null
+}
+
+release_baseline_sha() { # repo tag -> chasey commit recorded in release-baseline.tsv
+	[ -f "$BASELINE_FILE" ] || return 0
+	awk -F'\t' -v r="$1" -v t="$2" '$1 == r && $2 == t { print $3; exit }' "$BASELINE_FILE"
+}
+
+latest_release_any() { # repo <TAB> tag <TAB> createdAt, newest first
+	local repo
+	for repo in "$BUILD_REPO" "$LEGACY_REPO"; do
+		"$GH" release list -R "$repo" --limit 100 --json tagName,createdAt \
+			--jq '.[] | [.tagName,.createdAt] | @tsv' 2>/dev/null |
+			while IFS=$'\t' read -r tag created; do
+				[ -n "${tag:-}" ] || continue
+				printf '%s\t%s\t%s\n' "$repo" "$tag" "$created"
+			done
+	done | sort -t "$(printf '\t')" -k3,3r
 }
 
 classify() {
@@ -157,18 +177,33 @@ base=""
 [ -z "$base" ] && [ -n "$tag" ] && base=$(first_commit_before "$CHASEY_REPO" "25.12-dev-wifi7" "$(release_date "$tag")")
 track "chasey 25.12-dev-wifi7 (BE12 Pro)" "$CHASEY_REPO" "25.12-dev-wifi7" "$base" "release ${tag:-unknown}"
 
-# 4) chasey 25.12 (RAX3000M), 基线来自构建缓存 key
-rax_tag=$("$GH" release list -R "$RAX_REPO" --limit 1 --json tagName --jq '.[0].tagName' 2>/dev/null)
+# 4) chasey 25.12 (MT798x build)，基线取最近一次 release 对应的 chasey commit
+rax_repo=""
+rax_tag=""
+rax_created=""
+while IFS=$'\t' read -r r t c; do
+	[ -n "${t:-}" ] || continue
+	rax_repo=$r
+	rax_tag=$t
+	rax_created=$c
+	break
+done < <(latest_release_any)
+
 base=""
 if [ -n "$rax_tag" ]; then
-	rax_date=${rax_tag#build-}
-	rax_date=${rax_date%%-*}
-	cache_key=$("$GH" api "repos/$RAX_REPO/actions/caches" --jq '.actions_caches[].key' 2>/dev/null |
-		grep -m1 -- "-${rax_date}-" || true)
-	[ -n "$cache_key" ] && base=$(printf '%s' "$cache_key" | sed -n 's/.*-staging-\([0-9a-f]\{40\}\)-.*/\1/p')
-	[ -z "$base" ] && base=$(first_commit_before "$CHASEY_REPO" "25.12" "${rax_date:0:4}-${rax_date:4:2}-${rax_date:6:2}")
+	base=$(release_baseline_sha "$rax_repo" "$rax_tag")
+	# 旧逻辑兜底：构建缓存 key 里的 upstream commit
+	if [ -z "$base" ]; then
+		cache_date=${rax_created:0:10}
+		cache_date=${cache_date//-/}
+		cache_key=$("$GH" api "repos/$rax_repo/actions/caches" --jq '.actions_caches[].key' 2>/dev/null |
+			grep -m1 -- "-${cache_date}-" || true)
+		[ -n "$cache_key" ] && base=$(printf '%s' "$cache_key" | sed -n 's/.*-staging-\([0-9a-f]\{40\}\)-.*/\1/p')
+	fi
+	# 最后按 release 日期回退
+	[ -z "$base" ] && base=$(first_commit_before "$CHASEY_REPO" "25.12" "${rax_created:0:10}")
 fi
-track "chasey 25.12 (RAX3000M)" "$CHASEY_REPO" "25.12" "$base" "release ${rax_tag:-unknown}"
+track "chasey 25.12 (MT798x build)" "$CHASEY_REPO" "25.12" "$base" "release ${rax_tag:-unknown} @ ${rax_repo:-unknown}"
 
 # 摘要
 echo
