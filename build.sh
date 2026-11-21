@@ -502,7 +502,7 @@ ARTIFACT_DIR="$REPO_ROOT/artifacts/$Dev"
 mkdir -p "$ARTIFACT_DIR"
 find "$TARGET_DIR" -type f \( -name "*.bin" -o -name "*.manifest" -o -name "*efi.img.gz" -o -name "*.itb" -o -name "*.fip" -o -name "*.ubi" -o -name "*rootfs.tar.gz" \) -exec cp -f {} "$ARTIFACT_DIR/" \;
 for artifact_meta in config.buildinfo feeds.buildinfo version.buildinfo sha256sums profiles.json; do
-    find "$TARGET_DIR" -maxdepth 2 -type f -name "$artifact_meta" -exec cp -f {} "$ARTIFACT_DIR/" \;
+    find "$TARGET_DIR" -maxdepth 3 -type f -name "$artifact_meta" -exec cp -f {} "$ARTIFACT_DIR/" \;
 done
 echo "构建产物已保留到：$ARTIFACT_DIR"
 
