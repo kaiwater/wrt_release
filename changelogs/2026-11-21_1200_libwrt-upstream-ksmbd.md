@@ -59,7 +59,28 @@ xiaomi_ax3600_libwrt     AX3600
 /mnt/qnap/logs/<device>-<timestamp>.log
 ```
 
-构建、刷机和验证结果在完成后补充。
+## 验证（2026-11-21）
+
+三台设备均用 sysupgrade 保留配置升级：
+
+- CS-02（AX6600）双机：版本 `r38340-000a4e74b1`，内核 6.12.116，配置保留
+  （67 / 69 个 config），LAN 地址不变，无线正常，`ksmbd` 运行中，
+  `luci-app-quickfile` 未安装、`luci-app-filemanager` 在
+- AP8220：P1、P3 已升级验证（66 / 65 个 config，12 个无线接口，
+  `ksmbd` 运行中）；P2 按计划留到夜间升级
+- AX3600：首版构建的 manifest 被随后 AP8220 的构建覆盖，重编后重新刷机，
+  版本 `26.11.21_13.57.33`，配置保留（60 个 config），7 个无线接口
+
+构建产物覆盖问题已在 `build.sh` 修复：构建成功后按 profile 复制到
+`artifacts/<profile>/`，见 `2026-11-21_1410_artifact-keep-per-profile.md`。
+
+## Release
+
+```text
+26.11.21_13.01.22_jdcloud_ipq60xx_libwrt
+26.11.21_13.41.40_aliyun_ap8220_libwrt
+26.11.21_13.57.33_xiaomi_ax3600_libwrt
+```
 
 ## 注意
 
