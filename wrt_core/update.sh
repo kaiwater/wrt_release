@@ -116,7 +116,6 @@ stage_pre_install_source_fixes() {
     fix_quickstart
     update_oaf_deconfig
     add_timecontrol
-    add_quickfile
     update_lucky
     fix_rust_compile_error
     update_smartdns
