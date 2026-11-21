@@ -224,6 +224,24 @@ install_passwall_lists() {
     echo "已预置 PassWall 规则列表：chnlist / chnroute / chnroute6。"
 }
 
+install_passwall_geo() {
+    # AX6600 空间充足：预置 PassWall 规则更新时实际使用的完整 geo 数据，
+    # 首启即可用，不必先联网下载。只对 jdcloud_ipq60xx_libwrt 生效。
+    [ "$BUILD_MODEL" = "jdcloud_ipq60xx_libwrt" ] || return 0
+
+    local src_dir="$BASE_PATH/geo-data"
+    local dst_dir="$BUILD_DIR/package/base-files/files/usr/share/v2ray"
+
+    [ -f "$src_dir/geoip.dat.gz" ] && [ -f "$src_dir/geosite.dat.gz" ] || return 0
+
+    mkdir -p "$dst_dir"
+    gzip -dc "$src_dir/geoip.dat.gz" > "$dst_dir/geoip.dat"
+    gzip -dc "$src_dir/geosite.dat.gz" > "$dst_dir/geosite.dat"
+    chmod 0644 "$dst_dir/geoip.dat" "$dst_dir/geosite.dat"
+
+    echo "已预置 PassWall geo 数据：geoip.dat / geosite.dat。"
+}
+
 fix_default_set() {
     # 注入默认主题、系统设置和目标平台通用补丁。
     if [ -d "$BUILD_DIR/feeds/luci/collections/" ]; then

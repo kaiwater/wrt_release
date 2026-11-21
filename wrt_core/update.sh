@@ -81,6 +81,7 @@ stage_pre_install_source_fixes() {
     update_homeproxy
     fix_default_set
     install_passwall_lists
+    install_passwall_geo
     fix_mtwifi_security_defaults
     fix_mtwifi_temperature
     fix_ca_certificates_blacklist
