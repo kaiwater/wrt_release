@@ -80,7 +80,6 @@ stage_pre_install_source_fixes() {
     # 这里仅修改源码树与 feeds/*，不能依赖 package/feeds/*。
     update_homeproxy
     fix_default_set
-    install_passwall_lists
     install_passwall_geo
     fix_mtwifi_security_defaults
     fix_mtwifi_temperature
@@ -107,6 +106,9 @@ stage_pre_install_source_fixes() {
     add_ax6600_led
     set_custom_task
     apply_passwall_fixes
+    # 放在 apply_passwall_fixes 之后：apply_passwall_rules_tweaks() 会清空
+    # chnlist，预置列表必须在它之后再写入。
+    install_passwall_lists
     update_nss_pbuf_performance
     set_build_signature
     update_nss_diag
