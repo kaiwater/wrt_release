@@ -1,4 +1,5 @@
 firmware/
+artifacts/
 .pc/
 libwrt/
 test/

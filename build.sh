@@ -494,6 +494,18 @@ mkdir -p "$FIRMWARE_DIR"
 find "$TARGET_DIR" -type f \( -name "*.bin" -o -name "*.manifest" -o -name "*efi.img.gz" -o -name "*.itb" -o -name "*.fip" -o -name "*.ubi" -o -name "*rootfs.tar.gz" \) -exec cp -f {} "$FIRMWARE_DIR/" \;
 \rm -f "$BASE_PATH/../firmware/Packages.manifest" 2>/dev/null
 
+# 多个 profile 可能共用同一个 BUILD_DIR（例如 AP8220 和 AX3600 都用
+# libwrt-807x），下一次构建会清空 bin/targets。这里按 profile 再留一份
+# 本次产物，避免另一个机型的镜像和 manifest 被覆盖。
+ARTIFACT_DIR="$REPO_ROOT/artifacts/$Dev"
+\rm -rf "$ARTIFACT_DIR"
+mkdir -p "$ARTIFACT_DIR"
+find "$TARGET_DIR" -type f \( -name "*.bin" -o -name "*.manifest" -o -name "*efi.img.gz" -o -name "*.itb" -o -name "*.fip" -o -name "*.ubi" -o -name "*rootfs.tar.gz" \) -exec cp -f {} "$ARTIFACT_DIR/" \;
+for artifact_meta in config.buildinfo feeds.buildinfo version.buildinfo sha256sums profiles.json; do
+    find "$TARGET_DIR" -maxdepth 2 -type f -name "$artifact_meta" -exec cp -f {} "$ARTIFACT_DIR/" \;
+done
+echo "构建产物已保留到：$ARTIFACT_DIR"
+
 if [[ -d action_build ]]; then
     make clean
 fi
