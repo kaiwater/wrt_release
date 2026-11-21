@@ -20,8 +20,12 @@ chnroute6   https://ispip.clang.cn/all_cn_ipv6.txt
 `gfwlist` 由 `luci-app-passwall` 包自带，不需要在这里重复放。
 
 构建时由 `wrt_core/modules/target_fixes.sh` 的 `install_passwall_lists()`
-解压到 `package/base-files/files/usr/share/passwall/rules/`，适用于本仓库
-所有启用 `proxy` fragment（PassWall）的 profile。
+解压到 `package/base-files/files/usr/share/passwall/rules/`，只对
+`jdcloud_ipq60xx_libwrt`（AX6600，2 GB eMMC）生效。
+
+小 flash 机型不预置这些列表。`luci-app-passwall` 自带 `chnroute`、
+`chnroute6` 和 `gfwlist`，足够 PassWall 首次启动；`chnlist` 由 PassWall
+的规则更新自行下载。
 
 需要更新时，在设备上执行 PassWall 的规则更新，然后重新打包这三个文件：
 
