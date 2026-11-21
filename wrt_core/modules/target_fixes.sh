@@ -203,7 +203,7 @@ install_passwall_lists() {
     local ini="$BASE_PATH/compilecfg/$BUILD_MODEL.ini"
     local fragments=""
     local src_dir="$BASE_PATH/passwall-rules"
-    local dst_dir="$BUILD_DIR/package/base-files/files/usr/share/passwall/rules"
+    local dst_dir="$BUILD_DIR/custom_feed/luci-app-passwall/root/usr/share/passwall/rules"
     local name
 
     [ -f "$ini" ] && fragments=$(awk -F= '$1 == "CONFIG_FRAGMENTS" {print $2}' "$ini")
@@ -214,15 +214,18 @@ install_passwall_lists() {
     esac
 
     [ -d "$src_dir" ] || return 0
+    [ -d "$dst_dir" ] || {
+        echo "警告：未找到 luci-app-passwall 包目录，跳过规则列表预置。" >&2
+        return 0
+    }
 
-    mkdir -p "$dst_dir"
     for name in chnlist chnroute chnroute6; do
         [ -f "$src_dir/$name.gz" ] || continue
         gzip -dc "$src_dir/$name.gz" > "$dst_dir/$name"
         chmod 0644 "$dst_dir/$name"
     done
 
-    echo "已预置 PassWall 规则列表：chnlist / chnroute / chnroute6。"
+    echo "已预置 PassWall 规则列表：chnlist / chnroute / chnroute6（随包安装）。"
 }
 
 install_passwall_geo() {

@@ -20,9 +20,9 @@ chnroute6   https://ispip.clang.cn/all_cn_ipv6.txt
 `gfwlist` 由 `luci-app-passwall` 包自带，不需要在这里重复放。
 
 构建时由 `wrt_core/modules/target_fixes.sh` 的 `install_passwall_lists()`
-解压到 `package/base-files/files/usr/share/passwall/rules/`。只要 profile
-的 fragment 列表里带 `proxy`（启用 PassWall）就会预置，覆盖本仓库所有
-带 PassWall 的机型；不带 PassWall 的 profile 不受影响。
+直接写入 `custom_feed/luci-app-passwall/root/usr/share/passwall/rules/`，
+随包安装（不能用 base-files，路径会冲突）。只要 profile 的 fragment 列表里
+带 `proxy`（启用 PassWall）就会生效。
 
 这些列表压缩后只有约 0.4 MB，128 MB 小 flash 也放得下。geodata 另算：
 只有 2 GB eMMC 的 AX6600 会把 `geoip.dat` / `geosite.dat` 打进固件。
