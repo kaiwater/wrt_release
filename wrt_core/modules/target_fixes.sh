@@ -195,6 +195,28 @@ EOF
     echo "构建标识：${build_id}（source ${source_rev}）"
 }
 
+install_passwall_lists() {
+    # AX6600 空间充足：把 PassWall 的 chnlist/chnroute/chnroute6 预置进
+    # rootfs，避免首次规则更新前这些列表缺失。gfwlist 由 luci-app-passwall
+    # 自带，不在这里重复安装。
+    [ "$BUILD_MODEL" = "jdcloud_ipq60xx_libwrt" ] || return 0
+
+    local src_dir="$BASE_PATH/passwall-rules"
+    local dst_dir="$BUILD_DIR/package/base-files/files/usr/share/passwall/rules"
+    local name
+
+    [ -d "$src_dir" ] || return 0
+
+    mkdir -p "$dst_dir"
+    for name in chnlist chnroute chnroute6; do
+        [ -f "$src_dir/$name.gz" ] || continue
+        gzip -dc "$src_dir/$name.gz" > "$dst_dir/$name"
+        chmod 0644 "$dst_dir/$name"
+    done
+
+    echo "已预置 PassWall 规则列表：chnlist / chnroute / chnroute6。"
+}
+
 fix_default_set() {
     # 注入默认主题、系统设置和目标平台通用补丁。
     if [ -d "$BUILD_DIR/feeds/luci/collections/" ]; then
