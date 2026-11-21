@@ -1,4 +1,4 @@
-# PassWall 规则列表（预置到 AX6600 rootfs）
+# PassWall 规则列表（预置进 rootfs）
 
 这些文件来自运行中的 AX6600：
 
@@ -20,12 +20,12 @@ chnroute6   https://ispip.clang.cn/all_cn_ipv6.txt
 `gfwlist` 由 `luci-app-passwall` 包自带，不需要在这里重复放。
 
 构建时由 `wrt_core/modules/target_fixes.sh` 的 `install_passwall_lists()`
-解压到 `package/base-files/files/usr/share/passwall/rules/`，只对
-`jdcloud_ipq60xx_libwrt`（AX6600，2 GB eMMC）生效。
+解压到 `package/base-files/files/usr/share/passwall/rules/`。只要 profile
+的 fragment 列表里带 `proxy`（启用 PassWall）就会预置，覆盖本仓库所有
+带 PassWall 的机型；不带 PassWall 的 profile 不受影响。
 
-小 flash 机型不预置这些列表。`luci-app-passwall` 自带 `chnroute`、
-`chnroute6` 和 `gfwlist`，足够 PassWall 首次启动；`chnlist` 由 PassWall
-的规则更新自行下载。
+这些列表压缩后只有约 0.4 MB，128 MB 小 flash 也放得下。geodata 另算：
+只有 2 GB eMMC 的 AX6600 会把 `geoip.dat` / `geosite.dat` 打进固件。
 
 需要更新时，在设备上执行 PassWall 的规则更新，然后重新打包这三个文件：
 

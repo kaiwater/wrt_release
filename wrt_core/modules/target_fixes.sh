@@ -196,15 +196,22 @@ EOF
 }
 
 install_passwall_lists() {
-    # 只有 AX6600 有大容量 eMMC，预置 chnlist/chnroute/chnroute6。
-    # 小 flash 机型（128/256/512 MB）不预置：规则是活数据，体积不划算；
-    # luci-app-passwall 自带 chnroute/chnroute6/gfwlist，PassWall 自己
-    # 更新 chnlist 即可。
-    [ "$BUILD_MODEL" = "jdcloud_ipq60xx_libwrt" ] || return 0
-
+    # 所有启用 PassWall（proxy fragment）的机型都预置规则列表：
+    # chnlist / chnroute / chnroute6。gfwlist 由 luci-app-passwall 自带。
+    # 这些文件解压后约 1.5 MB，压缩进镜像约 0.4 MB，小 flash 也放得下；
+    # geodata 则只有大容量 eMMC 的 AX6600 才进固件。
+    local ini="$BASE_PATH/compilecfg/$BUILD_MODEL.ini"
+    local fragments=""
     local src_dir="$BASE_PATH/passwall-rules"
     local dst_dir="$BUILD_DIR/package/base-files/files/usr/share/passwall/rules"
     local name
+
+    [ -f "$ini" ] && fragments=$(awk -F= '$1 == "CONFIG_FRAGMENTS" {print $2}' "$ini")
+    fragments="${fragments},${ADD_CONFIG_FRAGMENTS:-}"
+    case ",${fragments}," in
+        *,proxy,*) ;;
+        *) return 0 ;;
+    esac
 
     [ -d "$src_dir" ] || return 0
 
