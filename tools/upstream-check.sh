@@ -42,7 +42,7 @@ latest_release_for() { # model-substring
 
 release_source_rev() { # tag
 	"$GH" release view "$1" -R "$REL_REPO" --json body --jq '.body' 2>/dev/null |
-		sed -n 's/.*@ `\([0-9a-f]\{7,40\}\)`.*/\1/p' | head -n1
+		sed -n 's/.*@[[:space:]]*`\{0,1\}\([0-9a-f]\{7,40\}\)`\{0,1\}.*/\1/p' | head -n1
 }
 
 release_date() { # tag -> YYYY-MM-DD
@@ -159,22 +159,31 @@ track() { # name repo branch base note
 # 1) LibWrt
 tag=$(latest_release_for "jdcloud_ipq60xx_libwrt")
 base=""
-[ -n "$tag" ] && base=$(release_source_rev "$tag")
-[ -z "$base" ] && [ -n "$tag" ] && base=$(first_commit_before "LiBwrt/LibWrt" "25.12-nss" "$(release_date "$tag")")
+if [ -n "$tag" ]; then
+	base=$(release_baseline_sha "$REL_REPO" "$tag")
+	[ -z "$base" ] && base=$(release_source_rev "$tag")
+	[ -z "$base" ] && base=$(first_commit_before "LiBwrt/LibWrt" "25.12-nss" "$(release_date "$tag")")
+fi
 track "LibWrt 25.12-nss (AX6600 / CS-02)" "LiBwrt/LibWrt" "25.12-nss" "$base" "release ${tag:-unknown}"
 
 # 2) VIKINGYFY main
 tag=$(latest_release_for "aliyun_ap8220_immwrt")
 base=""
-[ -n "$tag" ] && base=$(release_source_rev "$tag")
-[ -z "$base" ] && [ -n "$tag" ] && base=$(first_commit_before "VIKINGYFY/immortalwrt" "main" "$(release_date "$tag")")
+if [ -n "$tag" ]; then
+	base=$(release_baseline_sha "$REL_REPO" "$tag")
+	[ -z "$base" ] && base=$(release_source_rev "$tag")
+	[ -z "$base" ] && base=$(first_commit_before "VIKINGYFY/immortalwrt" "main" "$(release_date "$tag")")
+fi
 track "VIKINGYFY main (AP8220)" "VIKINGYFY/immortalwrt" "main" "$base" "release ${tag:-unknown}"
 
 # 3) chasey wifi7 (BE12 Pro)
 tag=$(latest_release_for "tenda_be12_pro_immwrt")
 base=""
-[ -n "$tag" ] && base=$(release_source_rev "$tag")
-[ -z "$base" ] && [ -n "$tag" ] && base=$(first_commit_before "$CHASEY_REPO" "25.12-dev-wifi7" "$(release_date "$tag")")
+if [ -n "$tag" ]; then
+	base=$(release_baseline_sha "$REL_REPO" "$tag")
+	[ -z "$base" ] && base=$(release_source_rev "$tag")
+	[ -z "$base" ] && base=$(first_commit_before "$CHASEY_REPO" "25.12-dev-wifi7" "$(release_date "$tag")")
+fi
 track "chasey 25.12-dev-wifi7 (BE12 Pro)" "$CHASEY_REPO" "25.12-dev-wifi7" "$base" "release ${tag:-unknown}"
 
 # 4) chasey 25.12 (MT798x build)，基线取最近一次 release 对应的 chasey commit
