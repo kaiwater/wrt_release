@@ -196,14 +196,21 @@ EOF
 }
 
 install_passwall_lists() {
-    # AX6600 空间充足：把 PassWall 的 chnlist/chnroute/chnroute6 预置进
-    # rootfs，避免首次规则更新前这些列表缺失。gfwlist 由 luci-app-passwall
-    # 自带，不在这里重复安装。
-    [ "$BUILD_MODEL" = "jdcloud_ipq60xx_libwrt" ] || return 0
-
+    # 给所有启用 PassWall 的 profile 预置 chnlist/chnroute/chnroute6，
+    # 避免首次启动、规则还没下载时没有名单可用。gfwlist 由
+    # luci-app-passwall 自带，不在这里重复安装。
+    local ini="$BASE_PATH/compilecfg/$BUILD_MODEL.ini"
+    local fragments=""
     local src_dir="$BASE_PATH/passwall-rules"
     local dst_dir="$BUILD_DIR/package/base-files/files/usr/share/passwall/rules"
     local name
+
+    [ -f "$ini" ] && fragments=$(awk -F= '$1 == "CONFIG_FRAGMENTS" {print $2}' "$ini")
+    fragments="${fragments},${ADD_CONFIG_FRAGMENTS:-}"
+    case ",${fragments}," in
+        *,proxy,*) ;;
+        *) return 0 ;;
+    esac
 
     [ -d "$src_dir" ] || return 0
 
