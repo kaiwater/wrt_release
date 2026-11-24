@@ -144,6 +144,16 @@ write_release_identity() {
     local lan_addr="${LAN_ADDR:-192.168.50.1}"
     local lan_cidr="${lan_addr}/24"
     local wifi_password="${WIFI_PASSWORD:-kaiwater/wrt_release}"
+    local build_stamp="${BUILD_STAMP:-$(TZ=Asia/Shanghai date '+%Y%m%d %H%M%S')}"
+    local branch_label
+
+    case "$source_url" in
+        *LiBwrt/LibWrt*) branch_label="LibWrt" ;;
+        *chasey-dev*) branch_label="chasey" ;;
+        *VIKINGYFY*) branch_label="VIKINGYFY" ;;
+        *immortalwrt*) branch_label="ImmortalWrt" ;;
+        *) branch_label="${source_branch}" ;;
+    esac
 
     if [ ! -d "$etc_dir" ]; then
         echo "警告：未找到 base-files/etc，跳过 release identity 写入。" >&2
@@ -158,6 +168,8 @@ BUILD_MODEL='$build_model'
 SOURCE_REPO='$source_url'
 SOURCE_BRANCH='$source_branch'
 SOURCE_REV='$source_rev'
+BUILD_STAMP='$build_stamp'
+BUILD_BRANCH='$branch_label'
 BUILD_RUN='$run_id'
 LAN_ADDR='$lan_addr'
 LAN_CIDR='$lan_cidr'
@@ -187,6 +199,23 @@ add_field DISTRIB_BUILD_DATE "$BUILD_DATE"
 add_field DISTRIB_BUILD_MODEL "$BUILD_MODEL"
 add_field DISTRIB_SOURCE_REV "$SOURCE_REV"
 add_field DISTRIB_BUILD_RUN "$BUILD_RUN"
+
+# 版本号尾部追加：<YYYYMMDD HHMMSS> - <分支> <commit>
+# 例：LibWrt 25.12-SNAPSHOT r38340-000a4e74b1 20261124 210918 - LibWrt 000a4e74b17e
+if [ -n "${BUILD_STAMP:-}" ] && [ -n "${BUILD_BRANCH:-}" ]; then
+    stamp="${BUILD_STAMP} - ${BUILD_BRANCH} ${SOURCE_REV}"
+    desc=$(sed -n "s/^DISTRIB_DESCRIPTION='\(.*\)'$/\1/p" /etc/openwrt_release)
+    [ -n "$desc" ] || desc="$DISTRIB_DESCRIPTION"
+    case "$desc" in
+        *"$stamp"*) ;;
+        *) desc="$desc $stamp" ;;
+    esac
+    if grep -q '^DISTRIB_DESCRIPTION=' /etc/openwrt_release; then
+        sed -i "s|^DISTRIB_DESCRIPTION=.*|DISTRIB_DESCRIPTION='$desc'|" /etc/openwrt_release
+    else
+        printf "DISTRIB_DESCRIPTION='%s'\n" "$desc" >> /etc/openwrt_release
+    fi
+fi
 
 exit 0
 EOF
