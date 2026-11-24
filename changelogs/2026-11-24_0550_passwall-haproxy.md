@@ -30,6 +30,7 @@ CONFIG_PACKAGE_haproxy=y
 ```text
 aliyun_ap8220_libwrt    ...,proxy,light_apps,haproxy
 jdcloud_ipq60xx_libwrt  ...,proxy,light_apps,haproxy
+tenda_be12_pro_immwrt   proxy,light_apps,tenda_be12_pro_minimal,haproxy
 ```
 
 AX3600 本次不启用。
