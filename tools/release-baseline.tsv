@@ -18,3 +18,6 @@ kaiwater/wrt_release	26.11.24_21.09.18_jdcloud_ipq60xx_libwrt	000a4e74b17edfdc29
 kaiwater/wrt_release	26.11.24_21.48.44_aliyun_ap8220_libwrt	000a4e74b17edfdc296f9eaa674344fc0adaaf95	haproxy 3.4.6, lists
 kaiwater/wrt_release	26.11.24_22.01.06_tenda_be12_pro_immwrt	dca94685cd73309b9902b1976aab4b2deccf86eb	haproxy 3.4.6, chasey wifi7
 kaiwater/immortalwrt-mt798x-build	rax3000m-20261124	458d2f7e9295ee3709dc4f0d5ca5fabbd4cc1863	RAX3000M / 256M / ME, haproxy 3.2.21
+kaiwater/wrt_release	26.11.28_08.07.28_jdcloud_ipq60xx_libwrt	54a6920bd4ac42310290de5c7fa39c590bdfdd48	kernel 6.12.118, coreutils-sort
+kaiwater/wrt_release	26.11.28_08.30.45_aliyun_ap8220_libwrt	54a6920bd4ac42310290de5c7fa39c590bdfdd48	kernel 6.12.118, coreutils-sort
+kaiwater/wrt_release	26.11.28_08.49.43_xiaomi_ax3600_libwrt	54a6920bd4ac42310290de5c7fa39c590bdfdd48	kernel 6.12.118, coreutils-sort
